@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Estrellas animadas con Canvas y JavaScript</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body>
+<canvas  id="canvas"></canvas>
+
+<!--Script para hacer el fondo de tamaño completo-->
+<script type="text/javascript">
+
+    var w = window.innerWidth;
+    var h = window.innerHeight;
+
+    var canvas = document.getElementById('canvas');
+    canvas.width = w;
+    canvas.height = h;
+
+    // Por ejemplo, si tienes un objeto que se mueve a lo largo de la pantalla:
+    var myObject = {
+        x: canvas.width / 2,
+        y: canvas.height - 50,
+        speed: 5
+    };
+</script>
+
+<script>
+    var canvas = document.getElementById('canvas');
+    var ctx = canvas.getContext('2d');
+
+    // definimos un array para las estrellas
+    var stars = [];
+    var FPS = 75;
+    var initiated = true;
+    var starinit = 80; //cuantas estrellas se dibujan al principio para que se vean dibujadas en toda la pantalla al comenzar
+    var colorBottom = "#000043";
+    var colorMiddle = "#000000";
+    var colorTop = "#3f1051";
+    var ciclos = 0;
+    var ciclosMax = 130; //esto maso es cada segundo
+    var GameInitiated = true;
+    //variable para registrar el tiempo de inicio
+    var startTime = new Date().getTime();
+
+    // creamos una función para generar estrellas aleatorias
+    function Star() {
+        this.x = Math.random() * canvas.width;
+        if (initiated){
+            this.y = canvas.height*Math.random();
+        }else{
+            this.y = -10;
+        }
+
+        this.speed = Math.random() * 2 + 0.5;
+        this.size = Math.random() * 10 + 5;
+        this.opacity = Math.random() * 0.3 + 0.5; // opacidad aleatoria entre 0.5 y 1
+        this.blur = Math.random(); //si es menor que 0.5 no tiene blur
+    }
+
+    // agregamos una función para crear estrellas y agregarlas al array
+    function createStars() {
+        for (var i = 0; i < 100; i++) {
+            stars[i] = new Star();
+            if (i>=starinit){
+                initiated = false;
+            }
+        }
+    }
+
+    // agregamos una función para dibujar las estrellas en el canvas
+    function drawStars() {
+
+        // dibujamos cada estrella en el canvas
+        for (var i = 0; i < stars.length; i++) {
+            // definimos el estilo de sombra para cada estrella
+            ctx.shadowColor = '#ffffff';
+            //generar random para generar blur o no
+            if (stars[i].blur < 0.5){
+                ctx.shadowBlur = 0;
+            }else{
+                ctx.shadowBlur = 25;
+            }
+
+            // dibujamos la estrella
+            ctx.fillStyle = 'rgba(255, 255, 255, ' + stars[i].opacity + ')';
+            ctx.fillRect(stars[i].x, stars[i].y, stars[i].size, stars[i].size);
+        }
+    }
+
+    // agregamos una función para mover las estrellas hacia arriba
+    function moveStars() {
+        for (var i = 0; i < stars.length; i++) {
+            stars[i].y += stars[i].speed;
+
+            if (stars[i].y > canvas.height) {
+                stars[i] = new Star();
+            }
+        }
+    }
+
+
+    function spaceBackground(){
+        //funcion para dibujar el fondo del espacio
+        var grd = ctx.createLinearGradient(0, 0, 0, canvas.height);
+
+        //ir oscureciendo el fondo del espacio para dar sensacion de profundidad
+        if (GameInitiated){
+            darkenColor();
+        }
+        grd.addColorStop(0.5, colorBottom);
+        grd.addColorStop(0, colorMiddle);
+        grd.addColorStop(1, colorTop);
+
+        ctx.fillStyle = grd;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
+    function darkenColor(){
+        if (ciclos >= ciclosMax){
+            //limitarlo a 16 para que no de error y de error :(
+            if (parseInt(colorBottom.substring(5,7),16)>16 ){
+                colorBottom = "#0000"+(parseInt(colorBottom.substring(5,7),16)-1).toString(16);
+            }
+            if (parseInt(colorTop.substring(5,7),16)>16 ){
+                colorTop = "#3f10"+(parseInt(colorTop.substring(5,7),16)-1).toString(16);
+            }
+            ciclos = 0;
+            //console log el tiempo tomado hasta reiniciar ciclos en segundos
+            console.log((new Date().getTime() - startTime)/1000);
+            startTime = new Date().getTime();
+        }
+        ciclos++;
+
+    }
+
+    // llamamos a las funciones necesarias para animar las estrellas
+    createStars();
+    setInterval(function () {
+        spaceBackground();
+        drawStars();
+        moveStars();
+    }, 1000 / FPS);
+</script>
+</body>
+</html>

@@ -1,12 +1,13 @@
 // nos marca los pulsos del juego
 window.requestAnimFrame = (function () {
+
     return  window.requestAnimationFrame        ||
         window.webkitRequestAnimationFrame  ||
         window.mozRequestAnimationFrame     ||
         window.oRequestAnimationFrame       ||
         window.msRequestAnimationFrame      ||
         function ( /* function */ callback, /* DOMElement */ element) {
-            window.setTimeout(callback, 1000 / 60);
+            window.setTimeout(callback, 1000 / 75);
         };
 })();
 arrayRemove = function (array, from) {
@@ -42,7 +43,8 @@ var game = (function () {
         finalBossShots = 30,
         finalBossLife = 12,
         totalBestScoresToShow = 5, // las mejores puntuaciones que se mostraran
-        playerShotsBuffer = [],
+        bgSpeed = 1, // Velocidad de desplazamiento del fondo fixme desplazamiento del fondo
+    playerShotsBuffer = [],
         evilShotsBuffer = [],
         evilShotImage,
         playerShotImage,
@@ -62,6 +64,7 @@ var game = (function () {
             fire: 32     // tecla espacio
         },
         nextPlayerShot = 0,
+        //todo variable para modificar el delay de balas, para powerup (en ms tal vez)
         playerShotDelay = 250,
         now = 0;
 
@@ -100,6 +103,7 @@ var game = (function () {
 
         showBestScores();
 
+
         canvas = document.getElementById('canvas');
         ctx = canvas.getContext("2d");
 
@@ -109,13 +113,19 @@ var game = (function () {
         bufferctx = buffer.getContext('2d');
 
         player = new Player(playerLife, 0);
-        evilCounter = 1;
+        evilCounter = 5;
         createNewEvil();
+
 
         showLifeAndScore();
 
         addListener(document, 'keydown', keyDown);
         addListener(document, 'keyup', keyUp);
+
+        var bgImage = new Image();
+        bgImage.src = 'images/background.jpg';
+
+        var bgSpeed = 1; // Velocidad de desplazamiento del fondo
 
         function anim () {
             loop();
@@ -432,6 +442,7 @@ var game = (function () {
 
         drawBackground();
 
+        drawBackgroundStars()
         if (congratulations) {
             showCongratulations();
             return;
@@ -502,9 +513,35 @@ var game = (function () {
             background = bgBoss;
         } else {
             background = bgMain;
+            //bgImage.src = "images/fondovertical.png";
+            //drawBackgroundStars();
         }
-        bufferctx.drawImage(background, 0, 0);
+        //draw color black behind the image to avoid transparency
+        bufferctx.fillStyle = "gray";
+        bufferctx.fillRect(0, 0, canvas.width, canvas.height);
+
+       // bufferctx.drawImage(background, 0, 0);
     }
+
+
+    function drawBackgroundStars() {
+        // Dibuja la imagen de fondo
+        var bgImage = new Image();
+        bgImage.src = "images/fondovertical.png";
+        ctx.drawImage(bgImage, 0, 0, canvas.width, canvas.height);
+
+        // Ajusta la posición de la imagen de fondo
+        ctx.translate(0, -bgSpeed);
+        ctx.drawImage(bgImage, 0, canvas.height, canvas.width, canvas.height);
+        ctx.translate(0, bgSpeed);
+
+        // Si la imagen de fondo se ha movido fuera de la pantalla, vuelve a colocarla en la parte inferior de la pantalla
+        if (bgSpeed > 0 && bgSpeed >= canvas.height) {
+            bgSpeed = 0;
+            ctx.translate(0, -canvas.height);
+        }
+    }
+
 
     function updateEvil() {
         if (!evil.dead) {
