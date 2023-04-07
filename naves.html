@@ -2,18 +2,54 @@
 <html>
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-    <title>Videojuego con Javascript y HTML5</title>
+    <title>UDES-Fender</title>
     <link type="text/css" rel="stylesheet" href="css/main.css?14042012">
+    <!--favicon-->
+    <link rel="shortcut icon" href="icon.png" type="image/x-icon" />
     <script src="js/videojuego-javascript.js?04042012" type="text/javascript"></script>
     <style>
         body {
             margin: 0;
             overflow: hidden;
+/*            background-color: #000;
+            color: #fff;
+            font-family: Arial, sans-serif;*/
+            text-align: center;
         }
         /*hide the scrollbar*/
         html {
             overflow: hidden;
         }
+        h1 {
+            font-size: 4em;
+            margin-top: 100px;
+        }
+/*        #juego {
+            display: none;
+        }*/
+
+
+        #loader {
+            border: 16px solid #f3f3f3; /* el color del borde de la rosca */
+            border-top: 16px solid #3498db; /* el color del borde superior de la rosca */
+            border-radius: 50%; /* la forma de la rosca */
+            width: 120px;
+            height: 120px;
+            animation: spin 2s linear infinite; /* la animación de giro */
+            margin: auto;
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            display: block;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
     </style>
 </head>
 <body onload="game.init()">
@@ -43,8 +79,12 @@
             <ul id="puntuaciones"></ul>
         </div>-->
 
+<!--<div id="pantalla-carga">
+    <h1>Cargando juego...</h1>
+</div>
+<div id="loader"></div>-->
 
-        <div class="juego">
+        <div id="juego">
             <canvas id="canvas" width="1000" height="1000">TU NAVEGADOR NO SOPORTA HTML5!</canvas>
         </div>
 
@@ -67,6 +107,24 @@
     };
 </script>
 
+<script>
+    //game loader todo habilitar cuando termine todo
+/*    window.addEventListener('load', function() {
+        // Mostrar pantalla de carga
+        var pantallaCarga = document.getElementById('pantalla-carga');
+        pantallaCarga.style.display = 'block';
 
-</body>
+        // Ocultar pantalla de carga después de 3 segundos
+        setTimeout(function() {
+            pantallaCarga.style.display = 'none';
+            document.getElementById("loader").style.display = "none";
+
+            // Mostrar el juego
+            var juego = document.getElementById('juego');
+            juego.style.display = 'block';
+        }, 2000);
+    });*/
+</script>
+
+    </body>
 </html>

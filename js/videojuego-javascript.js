@@ -146,11 +146,6 @@ var game = (function () {
         addListener(document, 'keydown', keyDown);
         addListener(document, 'keyup', keyUp);
 
-        var bgImage = new Image();
-        bgImage.src = 'images/background.jpg';
-
-        var bgSpeed = 1; // Velocidad de desplazamiento del fondo
-
         function anim () {
             loop();
             requestAnimFrame(anim);
@@ -275,6 +270,9 @@ var game = (function () {
         this.speed = evilSpeed;
         this.shots = shots ? shots : evilShots;
         this.dead = false;
+        this.lifeBarWidth = 1;
+        this.NumberLifes =0;
+        this.firstShot = true;
 
         var desplazamientoHorizontal = minHorizontalOffset +
             getRandomNumber(maxHorizontalOffset - minHorizontalOffset);
@@ -291,7 +289,30 @@ var game = (function () {
         };
 
         this.update = function () {
+            if (this.firstShot){
+                this.firstShot = false;
+                this.NumberLifes = this.life;
+            }
             this.posY += this.goDownSpeed;
+
+            // Calcular la longitud de la barra de vida en función de la vida actual
+            this.lifeBarWidth = this.life/this.NumberLifes;
+
+
+            // Dibujar la barra de vida verde
+            if (this.lifeBarWidth !== 1){
+                bufferctx.fillStyle = 'green';
+                bufferctx.fillRect(this.posX, this.posY - 10, this.image.width * this.lifeBarWidth, 5);
+
+                // Dibujar la barra de vida roja
+                bufferctx.fillStyle = 'red';
+                bufferctx.fillRect(this.posX + (this.image.width * this.lifeBarWidth), this.posY - 10, this.image.width * (1 - this.lifeBarWidth), 5);
+            }
+
+            // Dibujar al enemigo
+            bufferctx.drawImage(this.image, this.posX, this.posY);
+
+            // Mover al enemigo de izquierda a derecha
             if (this.direction === 'D') {
                 if (this.posX <= this.maxX) {
                     this.posX += this.speed;
@@ -307,16 +328,19 @@ var game = (function () {
                     this.posX += this.speed;
                 }
             }
+
+            // Actualizar la animación del enemigo
             this.animation++;
             if (this.animation > 5) {
                 this.animation = 0;
-                this.imageNumber ++;
+                this.imageNumber++;
                 if (this.imageNumber > 8) {
                     this.imageNumber = 1;
                 }
                 this.image = enemyImages.animation[this.imageNumber - 1];
             }
-        };
+        }
+;
 
         this.isOutOfScreen = function() {
             return this.posY > (canvas.height + 15);
@@ -341,6 +365,8 @@ var game = (function () {
         }
 
     }
+
+    /*fin enemigos*/
 
     function Evil (vidas, disparos) {
         Object.getPrototypeOf(Evil.prototype).constructor.call(this, vidas, disparos, evilImages);
