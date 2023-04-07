@@ -113,7 +113,11 @@ var game = (function () {
 
     }
 
+
+
     function init() {
+
+        //mostrar canvas negro con un circulo para que se estabilicen los fps
 
 
 
@@ -609,7 +613,7 @@ var game = (function () {
 
         // dibujamos cada estrella en el canvas
         for (var i = 0; i < stars.length; i++) {
-            // definimos el estilo de sombra para cada estrella
+            // definimos el estilo de sombra para cada estrella, solo en las estrellas
             bufferctx.shadowColor = '#ffffff';
             //generar random para generar blur o no
             if (stars[i].blur < 0.5){
