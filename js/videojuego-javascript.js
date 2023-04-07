@@ -7,7 +7,7 @@ window.requestAnimFrame = (function () {
         window.oRequestAnimationFrame       ||
         window.msRequestAnimationFrame      ||
         function ( /* function */ callback, /* DOMElement */ element) {
-            window.setTimeout(callback, 1000 / 75);
+            window.setTimeout(callback, 1000 / FPS);
         };
 })();
 arrayRemove = function (array, from) {
@@ -68,8 +68,24 @@ var game = (function () {
         playerShotDelay = 250,
         now = 0;
 
+    //otras variables para con estrellitas y mas uso
+    var stars = [],
+        FPS = 120,
+        initiated = true,//al comenzar el juego
+        starinit = 80,//cuantas estrellas se dibujan al principio para que se vean dibujadas en toda la pantalla al comenzar
+        colorBottom = "#000043",
+        colorMiddle = "#000000",
+        colorTop = "#3f1051",
+        ciclos = 0,
+        ciclosMax = 130, //esto maso es cada segundo
+        GameInitiated = true,
+        GameInitiatedStars = true;
+
+
+
     function loop() {
         update();
+
         draw();
     }
 
@@ -99,13 +115,17 @@ var game = (function () {
 
     function init() {
 
+
+
+        canvas = document.getElementById('canvas');
+        ctx = canvas.getContext("2d");
+
         preloadImages();
 
         showBestScores();
 
 
-        canvas = document.getElementById('canvas');
-        ctx = canvas.getContext("2d");
+
 
         buffer = document.createElement('canvas');
         buffer.width = canvas.width;
@@ -438,11 +458,35 @@ var game = (function () {
         return player.score + player.life * 5;
     }
 
+    function logFps() {
+        var fps = 0;
+        var lastCalledTime;
+
+        function updateFps() {
+            if (!lastCalledTime) {
+                lastCalledTime = performance.now();
+                fps = 0;
+                return;
+            }
+            var delta = (performance.now() - lastCalledTime) / 1000;
+            lastCalledTime = performance.now();
+            fps = Math.round(1 / delta);
+        }
+
+        function loop() {
+            updateFps();
+            console.log("FPS: " + fps);
+            requestAnimationFrame(loop);
+        }
+
+        loop();
+    }
+
+
     function update() {
 
         drawBackground();
 
-        drawBackgroundStars()
         if (congratulations) {
             showCongratulations();
             return;
@@ -507,41 +551,121 @@ var game = (function () {
         }
     }
 
+
     function drawBackground() {
-        var background;
-        if (evil instanceof FinalBoss) {
-            background = bgBoss;
-        } else {
-            background = bgMain;
-            //bgImage.src = "images/fondovertical.png";
-            //drawBackgroundStars();
+        var canvas = document.getElementById('canvas');
+        var ctx = canvas.getContext('2d');
+
+        if (GameInitiatedStars){
+            //solo debe hacerse una vez
+            createStars();
+            GameInitiatedStars = false;
         }
-        //draw color black behind the image to avoid transparency
-        bufferctx.fillStyle = "gray";
+
+        spaceBackground();
+        drawStars();
+        moveStars();
+
+
+
+
+        /*        let gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+        bufferctx.drawImage(bgMain, 0, 0, canvas.width, canvas.height);*/
+
+
+
+    }
+
+    /* ESTRELLAS NO MOLESTAR*/
+
+    function Star() {
+
+
+        this.x = Math.random() * canvas.width;
+        if (initiated){
+            this.y = canvas.height*Math.random();
+        }else{
+            this.y = -10;
+        }
+
+        //Math.random() * (max - min) + min
+        this.speed = Math.random() * 2 + 0.5;
+        //this.size = Math.random() * 10 + 5;
+        this.size = Math.random() * (15 - 5) + 5
+        this.opacity = Math.random() * 0.3 + 0.5; // opacidad aleatoria entre 0.5 y 1
+        this.blur = Math.random(); //si es menor que 0.5 no tiene blur
+    }
+
+    function createStars() {
+        for (var i = 0; i < 100; i++) {
+            stars[i] = new Star();
+            if (i>=starinit){
+                initiated = false;
+            }
+        }
+    }
+
+    function drawStars() {
+
+        // dibujamos cada estrella en el canvas
+        for (var i = 0; i < stars.length; i++) {
+            // definimos el estilo de sombra para cada estrella
+            bufferctx.shadowColor = '#ffffff';
+            //generar random para generar blur o no
+            if (stars[i].blur < 0.5){
+                bufferctx.shadowBlur = 0;
+            }else{
+                bufferctx.shadowBlur = 25;
+            }
+
+            // dibujamos la estrella
+            bufferctx.fillStyle = 'rgba(255, 255, 255, ' + stars[i].opacity + ')';
+            bufferctx.fillRect(stars[i].x, stars[i].y, stars[i].size, stars[i].size);
+        }
+    }
+
+    function moveStars() {
+        for (var i = 0; i < stars.length; i++) {
+            stars[i].y += stars[i].speed;
+            if (stars[i].y > canvas.height) {
+                stars[i] = new Star();
+            }
+        }
+    }
+
+    function spaceBackground(){
+        //funcion para dibujar el fondo del espacio
+        var grd = ctx.createLinearGradient(0, 0, 0, canvas.height);
+
+        //ir oscureciendo el fondo del espacio para dar sensacion de profundidad
+        if (GameInitiated){
+            darkenColor();
+        }
+        grd.addColorStop(0.5, colorBottom);
+        grd.addColorStop(0, colorMiddle);
+        grd.addColorStop(1, colorTop);
+
+        bufferctx.fillStyle = grd;
         bufferctx.fillRect(0, 0, canvas.width, canvas.height);
-
-       // bufferctx.drawImage(background, 0, 0);
     }
 
+    function darkenColor(){
+        if (ciclos >= ciclosMax){
+            //limitarlo a 16 para que no de error y de error :(
+            if (parseInt(colorBottom.substring(5,7),16)>16 ){
+                colorBottom = "#0000"+(parseInt(colorBottom.substring(5,7),16)-1).toString(16);
+            }
+            if (parseInt(colorTop.substring(5,7),16)>16 ){
+                colorTop = "#3f10"+(parseInt(colorTop.substring(5,7),16)-1).toString(16);
+            }
+            ciclos = 0;
 
-    function drawBackgroundStars() {
-        // Dibuja la imagen de fondo
-        var bgImage = new Image();
-        bgImage.src = "images/fondovertical.png";
-        ctx.drawImage(bgImage, 0, 0, canvas.width, canvas.height);
-
-        // Ajusta la posición de la imagen de fondo
-        ctx.translate(0, -bgSpeed);
-        ctx.drawImage(bgImage, 0, canvas.height, canvas.width, canvas.height);
-        ctx.translate(0, bgSpeed);
-
-        // Si la imagen de fondo se ha movido fuera de la pantalla, vuelve a colocarla en la parte inferior de la pantalla
-        if (bgSpeed > 0 && bgSpeed >= canvas.height) {
-            bgSpeed = 0;
-            ctx.translate(0, -canvas.height);
         }
+        ciclos++;
+
     }
 
+    /* ESTRELLAS NO MOLESTAR*/
 
     function updateEvil() {
         if (!evil.dead) {

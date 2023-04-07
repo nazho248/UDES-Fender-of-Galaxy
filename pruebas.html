@@ -36,18 +36,17 @@
     var ctx = canvas.getContext('2d');
 
     // definimos un array para las estrellas
-    var stars = [];
-    var FPS = 75;
-    var initiated = true;
-    var starinit = 80; //cuantas estrellas se dibujan al principio para que se vean dibujadas en toda la pantalla al comenzar
-    var colorBottom = "#000043";
-    var colorMiddle = "#000000";
-    var colorTop = "#3f1051";
-    var ciclos = 0;
-    var ciclosMax = 130; //esto maso es cada segundo
-    var GameInitiated = true;
+    var stars = [],
+        FPS = 75,
+        initiated = true,
+        starinit = 80,//cuantas estrellas se dibujan al principio para que se vean dibujadas en toda la pantalla al comenzar
+        colorBottom = "#000043",
+        colorMiddle = "#000000",
+        colorTop = "#3f1051",
+        ciclos = 0,
+        ciclosMax = 130, //esto maso es cada segundo
+        GameInitiated = true;
     //variable para registrar el tiempo de inicio
-    var startTime = new Date().getTime();
 
     // creamos una función para generar estrellas aleatorias
     function Star() {
@@ -58,8 +57,10 @@
             this.y = -10;
         }
 
+        //Math.random() * (max - min) + min
         this.speed = Math.random() * 2 + 0.5;
-        this.size = Math.random() * 10 + 5;
+        //this.size = Math.random() * 10 + 5;
+        this.size = Math.random() * (15 - 5) + 5
         this.opacity = Math.random() * 0.3 + 0.5; // opacidad aleatoria entre 0.5 y 1
         this.blur = Math.random(); //si es menor que 0.5 no tiene blur
     }
@@ -98,7 +99,6 @@
     function moveStars() {
         for (var i = 0; i < stars.length; i++) {
             stars[i].y += stars[i].speed;
-
             if (stars[i].y > canvas.height) {
                 stars[i] = new Star();
             }
