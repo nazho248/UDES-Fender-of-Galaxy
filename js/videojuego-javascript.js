@@ -81,6 +81,13 @@ var game = (function () {
         GameInitiated = true,
         GameInitiatedStars = true;
 
+    //variables para dibujar texto despues de matar enemigos
+    var posXTexto = 0,
+        posYTexto = 0,
+        printTexto = false,
+        scoreObtenido = 0,
+        transparenciaTexto = 1;
+
 
 
     function loop() {
@@ -283,6 +290,10 @@ var game = (function () {
 
         this.kill = function() {
             this.dead = true;
+            //globales para imprimir texto puntuación
+            posXTexto = this.posX ;
+            posYTexto = this.posY;
+            printTexto = true;
             totalEvils --;
             this.image = enemyImages.killed;
             verifyToCreateNewEvil();
@@ -312,22 +323,34 @@ var game = (function () {
             // Dibujar al enemigo
             bufferctx.drawImage(this.image, this.posX, this.posY);
 
-            // Mover al enemigo de izquierda a derecha
-            if (this.direction === 'D') {
-                if (this.posX <= this.maxX) {
-                    this.posX += this.speed;
-                } else {
-                    this.direction = 'I';
-                    this.posX -= this.speed;
-                }
+            //mover el enemigo hacia la posicion del jugador
+            if (this.posX < player.posX) {
+                this.posX += this.speed;
+
             } else {
-                if (this.posX >= this.minX) {
-                    this.posX -= this.speed;
-                } else {
-                    this.direction = 'D';
-                    this.posX += this.speed;
-                }
+                this.posX -= this.speed;
             }
+
+
+            // Mover al enemigo de izquierda a derecha
+            /*
+                        if (this.direction === 'D') {
+                            if (this.posX <= this.maxX) {
+                                this.posX += this.speed;
+                            } else {
+                                this.direction = 'I';
+                                this.posX -= this.speed;
+                            }
+                        } else {
+                            if (this.posX >= this.minX) {
+                                this.posX -= this.speed;
+                            } else {
+                                this.direction = 'D';
+                                this.posX += this.speed;
+                            }
+                        }
+            */
+
 
             // Actualizar la animación del enemigo
             this.animation++;
@@ -347,7 +370,8 @@ var game = (function () {
         };
 
         function shoot() {
-            if (evil.shots > 0 && !evil.dead) {
+            //fixme evil.shots>0 modificado para pruebas
+            if (evil.shots > 20 && !evil.dead) {
                 var disparo = new EvilShot(evil.posX + (evil.image.width / 2) - 5 , evil.posY + evil.image.height);
                 disparo.add();
                 evil.shots --;
@@ -423,6 +447,7 @@ var game = (function () {
                 evil.life--;
             } else {
                 evil.kill();
+                scoreObtenido = evil.pointsToKill;
                 player.score += evil.pointsToKill;
             }
             shot.deleteShot(parseInt(shot.identifier));
@@ -520,6 +545,24 @@ var game = (function () {
         if (congratulations) {
             showCongratulations();
             return;
+        }
+
+        if (printTexto){
+            //imprimir "hola mundo" en posXTexto e posYTexto
+
+            //bufferctx.fillStyle=rgba(255,255,255,transparenciaTexto);
+            //fillstyle with transparency
+            bufferctx.fillStyle="rgba(255,255,255,"+transparenciaTexto+")";
+            bufferctx.font="bold 15px Arial";
+
+            //mover texto hacia arriba
+            posYTexto -= 1;
+            transparenciaTexto -= 0.05;
+            bufferctx.fillText("+"+ scoreObtenido, posXTexto, posYTexto);
+            if (transparenciaTexto <= 0){
+                printTexto = false;
+                transparenciaTexto = 1;
+            }
         }
 
         if (youLoose) {
