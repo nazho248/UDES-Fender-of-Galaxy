@@ -97,6 +97,23 @@ var game = (function () {
         evilhit = false, //para que el malo se ponga de color rojo cuando le disparen
         ciclosHit = 0;
 
+    //variales para control del menu y otras cosillas
+    var ShowMenu = true,
+        resetGame = false,
+        chrome,
+        firefox,
+        opera,
+        edge,
+        brave,
+        safari,
+        img1,
+        img2,
+        logo,
+        buttons,
+        customFont;
+
+    // Imágenes en la parte inferior izquierda y derecha del menu
+
 
 
     function loop() {
@@ -108,10 +125,10 @@ var game = (function () {
         for (var i = 1; i <= 8; i++) {
             var evilImage = new Image();
             evilImage.src = 'images/malo' + i + '.png';
-            evilImages.animation[i-1] = evilImage;
+            evilImages.animation[i - 1] = evilImage;
             var bossImage = new Image();
             bossImage.src = 'images/jefe' + i + '.png';
-            bossImages.animation[i-1] = bossImage;
+            bossImages.animation[i - 1] = bossImage;
         }
         evilImages.killed.src = 'images/malo_muerto.png';
         bossImages.killed.src = 'images/jefe_muerto.png';
@@ -126,6 +143,27 @@ var game = (function () {
         playerKilledImage = new Image();
         playerKilledImage.src = 'images/bueno_muerto.png';
 
+        //llamo imagenes de los navegadores
+        chrome = new Image();
+        firefox = new Image();
+        opera = new Image();
+        edge = new Image();
+        brave = new Image();
+        safari = new Image();
+        chrome.src = "images/browsers/chrome.png";
+        firefox.src = "images/browsers/firefox.png";
+        opera.src = "images/browsers/opera.png";
+        edge.src = "images/browsers/edge.png";
+        brave.src = "images/browsers/brave.png";
+        safari.src = "images/browsers/safari.png";
+
+        img2 = new Image();
+        img2.src = "/images/empresaLogo.png";
+        img1 = new Image();
+        img1.src = "images/autentia.png"
+        logo = new Image();
+        logo.src = "/images/logo.png";
+
     }
 
 
@@ -133,6 +171,7 @@ var game = (function () {
     function init() {
 
         //mostrar canvas negro con un circulo para que se estabilicen los fps
+
 
 
 
@@ -151,6 +190,8 @@ var game = (function () {
         buffer.height = canvas.height;
         bufferctx = buffer.getContext('2d');
 
+        initMenu();
+        //fixme aqui se añade el jugador y empieza el juego
         player = new Player(playerLife, 0);
         evilCounter = 5;
         createNewEvil();
@@ -160,6 +201,7 @@ var game = (function () {
 
         addListener(document, 'keydown', keyDown);
         addListener(document, 'keyup', keyUp);
+
 
         function anim () {
             loop();
@@ -591,53 +633,69 @@ var game = (function () {
     function update() {
 
         drawBackground();
+        playerAction();
 
-        if (youLoose) {
-            showGameOver();
-            //todo aqui el return no deja hacer mas nada
-            //return;
-        }else if(congratulations){
-            showCongratulations();
+        if (ShowMenu) {
+            console.log("Mostrando menu");
+            ciclos++;
+            drawMenu();
+            if (resetGame) {
+                resetGame = false;
+                console.log("Reseteando juego");
+                player.score = 0;
+                player.life = 3;
+            }
 
         }else{
-            if (printTexto){
-                bufferctx.fillStyle="rgba(255,255,255,"+transparenciaTexto+")";
-                bufferctx.font="bold 15px Arial";
 
-                //mover texto hacia arriba
-                posYTexto -= 1;
-                transparenciaTexto -= 0.02;
-                bufferctx.fillText("+"+ scoreObtenido, posXTexto, posYTexto);
-                if (transparenciaTexto <= 0){
-                    printTexto = false;
-                    transparenciaTexto = 1;
+            if (youLoose) {
+                showGameOver();
+                //todo aqui el return no deja hacer mas nada
+                //return;
+            }else if(congratulations){
+                showCongratulations();
+
+            }else{
+                if (printTexto){
+                    bufferctx.fillStyle="rgba(255,255,255,"+transparenciaTexto+")";
+                    bufferctx.font="bold 15px Arial";
+
+                    //mover texto hacia arriba
+                    posYTexto -= 1;
+                    transparenciaTexto -= 0.02;
+                    bufferctx.fillText("+"+ scoreObtenido, posXTexto, posYTexto);
+                    if (transparenciaTexto <= 0){
+                        printTexto = false;
+                        transparenciaTexto = 1;
+                    }
                 }
-            }
 
 
 
-            bufferctx.drawImage(player, player.posX, player.posY);
-            bufferctx.drawImage(evil.image, evil.posX, evil.posY);
+                bufferctx.drawImage(player, player.posX, player.posY);
+                bufferctx.drawImage(evil.image, evil.posX, evil.posY);
 
-            updateEvil();
+                updateEvil();
 
-            for (var j = 0; j < playerShotsBuffer.length; j++) {
-                var disparoBueno = playerShotsBuffer[j];
-                updatePlayerShot(disparoBueno, j);
-            }
-
-            if (isEvilHittingPlayer()) {
-                player.killPlayer();
-            } else {
-                for (var i = 0; i < evilShotsBuffer.length; i++) {
-                    var evilShot = evilShotsBuffer[i];
-                    updateEvilShot(evilShot, i);
+                for (var j = 0; j < playerShotsBuffer.length; j++) {
+                    var disparoBueno = playerShotsBuffer[j];
+                    updatePlayerShot(disparoBueno, j);
                 }
+
+                if (isEvilHittingPlayer()) {
+                    player.killPlayer();
+                } else {
+                    for (var i = 0; i < evilShotsBuffer.length; i++) {
+                        var evilShot = evilShotsBuffer[i];
+                        updateEvilShot(evilShot, i);
+                    }
+                }
+
+                showLifeAndScore();
+
             }
 
-            showLifeAndScore();
 
-            playerAction();
         }
     }
 
@@ -900,7 +958,280 @@ var game = (function () {
     }
     /******************************* FIN MEJORES PUNTUACIONES *******************************/
 
+
+
+    /************************************************* MENU DE INICIO ********************************************************************/
+
+
+    var ciclos = 0;
+// Imagen del logo
+
+    var openedControls = false;
+    var openedCredits = false;
+    var movimientoLogo=20;
+    var logobajando = true;
+
+
+
+// Escala de las imágenes
+    var scaleFactor = 0.5;
+
+    var colorNamejuego = "white";
+
+
+
+
+// Botones del menú
+
+
+// Dibujar el menú
+    function drawMenu() {
+        //logo
+        //mover hacia arriba y abajo el logo
+        if (logobajando) {
+            if (movimientoLogo < 20) {
+                movimientoLogo += 0.1;
+            } else {
+                logobajando = false;
+            }
+        } else {
+            if (movimientoLogo > 10) {
+                movimientoLogo -= 0.1;
+            } else {
+                logobajando = true;
+            }
+        }
+        bufferctx.drawImage(logo, canvas.width / 2 - logo.width / 2, 50- movimientoLogo, logo.width, logo.height);
+
+        //original
+        //ctx.drawImage(logo, canvas.width/2 - logo.width/2, 50);
+        //texto del nombre del juego en fuente pixelada
+        //a different color random generated
+        colorNamejuego = "rgb(" + Math.floor(Math.random() * 255) + "," + Math.floor(Math.random() * 255) + "," + Math.floor(Math.random() * 255) + ")";
+        bufferctx.fillStyle = colorNamejuego;
+        //add the text UDES-Fender and Galaxy with a border black
+        bufferctx.strokeStyle = "black";
+        bufferctx.lineWidth = 10;
+        bufferctx.font = "50px 'Press Start 2P'";
+        bufferctx.textAlign = "center";
+        bufferctx.strokeText("UDES-Fender", canvas.width / 2, logo.height-60);
+        bufferctx.strokeText("Galaxy", canvas.width / 2, logo.height);
+        bufferctx.fillText("UDES-Fender", canvas.width / 2, logo.height-60);
+        bufferctx.fillText("Galaxy", canvas.width / 2, logo.height);
+
+        // Botones
+        for (var i = 0; i < buttons.length; i++) {
+            var button = buttons[i];
+            if (ciclos >= 20 && button.pressed) {
+                buttons[i].color = "gray";
+                ciclos = 0;
+                buttons[i].pressed = false;
+            }
+
+            bufferctx.fillStyle = button.color;
+            bufferctx.fillRect(button.x, button.y, button.width, button.height);
+            bufferctx.fillStyle = "white";
+            bufferctx.font = "20px Arial";
+            //text in the middle of the button
+            bufferctx.textAlign = "center";
+            bufferctx.fillText(button.text, button.x + button.width/2, button.y + button.height/2 + 5);
+
+        }
+
+
+
+        // Imágenes
+        bufferctx.drawImage(img1, 20, (canvas.height - img1.height*scaleFactor)-20, img1.width*scaleFactor, img1.height*scaleFactor);
+        bufferctx.drawImage(img2,canvas.width - img2.width*scaleFactor - 20, (canvas.height - img2.height*scaleFactor)-20, img2.width*scaleFactor, img2.height*scaleFactor);
+
+        if (openedControls) {
+            drawControlsPopup();
+        }
+        if (openedCredits) {
+            drawCreditsPopup();
+        }
+
+
+        canvas.addEventListener("click", function(event) {
+            var x = event.pageX - canvas.offsetLeft;
+            var y = event.pageY - canvas.offsetTop;
+            for (var i = 0; i < buttons.length; i++) {
+                var button = buttons[i];
+                button.pressed = true;
+
+                if (x > button.x && x < button.x + button.width && y > button.y && y < button.y + button.height && !openedControls && !openedCredits) {
+                    // Cambiar el color del botón al hacer clic
+                    button.color = "red";
+                    // Aquí puedes agregar la lógica para cada botón
+                    if (button.text === "Jugar") {
+                        console.log("Jugar");
+                        // Lógica para el botón Jugar
+                    } else if (button.text === "Modo infinito") {
+                        console.log("Modo infinito");
+                        // Lógica para el botón Modo infinito
+                    } else if (button.text === "Controles") {
+                        console.log("Controles");
+                        openedControls = true;
+                    } else if (button.text === "Créditos") {
+                        console.log("Créditos");
+                        openedCredits = true;
+                    }
+
+
+                }
+            }
+        });
+
+
+    }
+
+    // Manejador de eventos para los botones
+
+    function drawCreditsPopup(){
+        createModal(canvas, canvas.width / 2 - 200, canvas.height / 2 - 200, 500, 500, "Créditos", 40);
+        bufferctx.fillStyle = "white";
+        bufferctx.font = "20px Arial";
+        bufferctx.textAlign = "center";
+        bufferctx.fillText("Desarrollado con ❤️:", canvas.width / 2 + 40, canvas.height / 2 - 200 + 125);
+        bufferctx.fillText("Jair Andrés González Ruiz", canvas.width / 2 + 40, canvas.height / 2 - 200 + 50 + 125);
+        // Probado en
+        bufferctx.fillText("Probado en:", canvas.width / 2 + 40, canvas.height / 2 - 200 + 50 + 125 + 75);
+
+        //navegadores
+        bufferctx.drawImage(chrome, canvas.width / 2 - 200 + 50+20, canvas.height / 2 - 200 + 50 + 225 + 20, 40, 40);
+        bufferctx.drawImage(firefox, (canvas.width / 2 - 200 + 50 + 50)+20+15, canvas.height / 2 - 200 + 50 + 225 + 20, 40, 40);
+        bufferctx.drawImage(opera, (canvas.width / 2 - 200 + 50 + 100)+20+30, canvas.height / 2 - 200 + 50 + 225 + 20, 40, 40);
+        bufferctx.drawImage(edge, (canvas.width / 2 - 200 + 50 + 150)+20+45, canvas.height / 2 - 200 + 50 + 225 + 20, 40, 40);
+        bufferctx.drawImage(brave, (canvas.width / 2 - 200 + 50 + 200)+20+60, canvas.height / 2 - 200 + 50 + 225 + 20, 40, 45);
+        bufferctx.drawImage(safari, (canvas.width / 2 - 200 + 50 + 250)+20+75, canvas.height / 2 - 200 + 50 + 225 + 20, 40, 40);
+
+        //2023
+        ctx.fillText("2023 Ⓒ", canvas.width / 2 + 40, canvas.height / 2 + 250);
+    }
+
+    function drawControlsPopup() {
+        createModal(canvas, canvas.width/2 - 200, canvas.height/2 - 200, 500, 500, "Controles", 40);
+
+        //llamo imagenes
+        let space = new Image();
+        let izq = new Image();
+        let der = new Image();
+        space.src = "images/space.gif";
+        izq.src = "images/izquierda.png";
+        der.src = "images/derecha.png";
+
+        let margensuperior = 50;
+        //poner imagenes en el modal de controles y a su lado el texto
+        bufferctx.drawImage(space, canvas.width / 2 - 200 + 50, canvas.height / 2 - 200 + 50 + margensuperior, 75, 40);
+        bufferctx.drawImage(izq, canvas.width / 2 - 200 + 50, canvas.height / 2 - 200 + 50 + 70 + margensuperior, 50, 50);
+        bufferctx.drawImage(der, canvas.width / 2 - 200 + 50, canvas.height / 2 - 200 + 50 + 150 + margensuperior, 50, 50);
+
+        bufferctx.fillStyle = "white";
+        bufferctx.font = "20px Arial";
+        bufferctx.textAlign = "left";
+
+        bufferctx.fillText("Disparar", canvas.width / 2 - 200 + 50 + 75 + 20, canvas.height / 2 - 200 + 50 + 30 + margensuperior);
+        bufferctx.fillText("Moverse a la izquierda", canvas.width / 2 - 200 + 50 + 75 + 20, canvas.height / 2 - 200 + 50 + 70 + 30 + margensuperior);
+        bufferctx.fillText("Moverse a la derecha", canvas.width / 2 - 200 + 50 + 75 + 20, canvas.height / 2 - 200 + 50 + 150 + 30 + margensuperior);
+    }
+
+    function createModal(canvas, x, y, width, height, titulo, textSize) {
+        // Dibujar el cuadro de fondo del cuadro emergente
+        bufferctx.globalCompositeOperation = "source-over";
+        bufferctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+        bufferctx.fillRect(x, y, width, height);
+
+        // Dibujar el texto del modal
+        bufferctx.fillStyle = "white";
+        bufferctx.font = textSize + "px Arial";
+        //titulo del modal centrado en la parte superior
+        bufferctx.textAlign = "center";
+        bufferctx.fillText(titulo, x + width/2, y + textSize + 20);
+
+        // Dibujar el botón de "X" con fondo cuadrado
+        bufferctx.fillStyle = "red";
+        bufferctx.fillRect(x + width - 25, y, 25, 25);
+        bufferctx.fillStyle = "white";
+        bufferctx.font = "20px Arial";
+        bufferctx.textAlign = "center";
+        bufferctx.fillText("X", x + width - 12.5, y + 20);
+
+        // Agregar event listener para cerrar el modal al hacer clic en "X"
+        canvas.addEventListener("click", function(event) {
+            var mouseX = event.pageX - canvas.offsetLeft;
+            var mouseY = event.pageY - canvas.offsetTop;
+            if (mouseX > x + width - 25 && mouseX < x + width && mouseY > y && mouseY < y + 25) {
+                openedControls = false;
+                openedCredits = false;
+            }
+        });
+    }
+
+    function initMenu(){
+        // botones del menu de inicio
+        buttons = [
+            {
+                //botones del menu
+                //texto centrado en el boton
+                text: "Jugar",
+                x: canvas.width / 2 - 125,
+                y: canvas.height / 2 - 50 + 50,
+                width: 240,
+                height: 50,
+                color: "gray",
+                pressed: false
+            },
+            {
+                text: "Modo infinito",
+                x: canvas.width / 2 - 125,
+                y: canvas.height / 2 + 75,
+                width: 240,
+                height: 50,
+                color: "gray",
+                pressed: false
+            }, {
+                text: "Tabla de puntuaciones",
+                x: canvas.width / 2 - 125,
+                y: canvas.height / 2 + 75 + 75,
+                width: 240,
+                height: 50,
+                color: "gray",
+                pressed: false
+            }, {
+                text: "Controles",
+                x: canvas.width / 2 - 125,
+                y: canvas.height / 2 + 75 + 75 + 75,
+                width: 240,
+                height: 50,
+                color: "gray",
+                pressed: false
+            },
+            {
+                text: "Créditos",
+                x: canvas.width / 2 - 125,
+                y: canvas.height / 2 + 75 + 75 + 75 + 75,
+                width: 240,
+                height: 50,
+                color: "gray",
+                pressed: false
+            }
+        ]
+
+
+        //fuente personalizada
+         customFont = new FontFace('Press Start 2P', 'url(/css/PressStart2P-Regular.ttf)');
+// Esperar a que se cargue la fuente
+        customFont.load().then(function(font) {
+            // Establecer la fuente como la fuente actual del contexto del canvas
+            document.fonts.add(font);
+            ctx.font = "30px 'Press Start 2P', Press Start 2P"; // Ejemplo de cómo utilizar la fuente personalizada
+        });
+
+
+    }
+
     return {
         init: init
     }
 })();
+
