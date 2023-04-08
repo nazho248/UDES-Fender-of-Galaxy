@@ -31,9 +31,9 @@ var game = (function () {
         playerShot,
         bgMain,
         bgBoss,
-        evilSpeed = 1,
+        evilSpeed = 4,
         totalEvils = 7,
-        playerLife = 3,
+        playerLife = 1, // vidas que tiene el bueno al principio
         shotSpeed = 5,
         playerSpeed = 5,
         evilCounter = 0,
@@ -45,7 +45,7 @@ var game = (function () {
         evilLife = 3,    // vidas que tiene el malo al principio (se van incrementando)
         finalBossShots = 30,
         finalBossLife = 12,
-        totalBestScoresToShow = 5, // las mejores puntuaciones que se mostraran
+        totalBestScoresToShow = 6 -1, // las mejores puntuaciones que se mostraran
         bgSpeed = 1, // Velocidad de desplazamiento del fondo fixme desplazamiento del fondo
     playerShotsBuffer = [],
         evilShotsBuffer = [],
@@ -95,11 +95,12 @@ var game = (function () {
         scoreObtenido = 0,
         transparenciaTexto = 1,
         evilhit = false, //para que el malo se ponga de color rojo cuando le disparen
-        ciclosHit = 0;
+        ciclosHit = 0,
+        puttingText = false; //por si tengo esto activado no responder ante teclas
 
     //variales para control del menu y otras cosillas
     var ShowMenu = true,
-        resetGame = false,
+        resetedGame = false,
         chrome,
         firefox,
         opera,
@@ -110,7 +111,10 @@ var game = (function () {
         img2,
         logo,
         buttons,
-        customFont;
+        customFont,
+        space,
+        izq,
+        der;
 
     // Imágenes en la parte inferior izquierda y derecha del menu
 
@@ -164,6 +168,14 @@ var game = (function () {
         logo = new Image();
         logo.src = "/images/logo.png";
 
+        //llamo imagenes
+        space = new Image();
+        izq = new Image();
+        der = new Image();
+        space.src = "images/space.gif";
+        izq.src = "images/izquierda.png";
+        der.src = "images/derecha.png";
+
     }
 
 
@@ -179,11 +191,6 @@ var game = (function () {
         ctx = canvas.getContext("2d");
 
         preloadImages();
-
-        showBestScores();
-
-
-
 
         buffer = document.createElement('canvas');
         buffer.width = canvas.width;
@@ -253,6 +260,8 @@ var game = (function () {
         };
 
         player.doAnything = function() {
+
+
             if (player.dead)
                 return;
             if (keyPressed.left && player.posX > 5)
@@ -261,16 +270,16 @@ var game = (function () {
                 player.posX += player.speed;
             if (keyPressed.fire)
                 shoot();
-            if(keyPressed.R)
-                //todo reiniciar el juego
-                console.log("reiniciar");
+            if(!puttingText)
+                if(keyPressed.R && youLoose)
+                    resetGame();
             if (keyPressed.up)
                 console.log("up");
                 player.posY -= player.speed;
             if (keyPressed.down)
                 console.log("down")
                 player.posY += player.speed;
-            if (keyPressed.suicide)
+            if (keyPressed.suicide && !puttingText)
                 player.killPlayer()
         };
 
@@ -286,8 +295,14 @@ var game = (function () {
                 }, 500);
 
             } else {
-                saveFinalScore();
                 youLoose = true;
+                if (isBestScore()){
+                    showModalForText().then(function(name) {
+                        saveFinalScore(name);
+                        puttingText = false;
+                    });
+                }
+
             }
         };
 
@@ -554,6 +569,10 @@ var game = (function () {
     }
 
     function keyDown(e) {
+
+        if (puttingText){
+            return;
+        }
         var key = (window.event ? e.keyCode : e.which);
         for (var inkey in keyMap) {
             if (key === keyMap[inkey]) {
@@ -580,39 +599,56 @@ var game = (function () {
     function showGameOver() {
         bufferctx.fillStyle="rgb(255,0,0)";
         bufferctx.font="bold 35px Arial";
-        bufferctx.fillText("GAME OVER", canvas.width / 2 - 100, canvas.height / 2);
-
-
-        bufferctx.fillText("PUNTUACION TOTAL: " + getTotalScore(), canvas.width / 2 - 200, canvas.height / 2 + 60);
+        bufferctx.fillText("GAME OVER", canvas.width / 2 , canvas.height / 2);
+        bufferctx.fillText("PUNTUACION TOTAL: " + getTotalScore(), canvas.width / 2 , canvas.height / 2 + 60);
+        //texto de presiona R para reiniciar pequeño
+        bufferctx.fillStyle="rgb(255,255,255)";
+        bufferctx.font="bold 20px Arial";
+        bufferctx.fillText("Presiona R para reiniciar", canvas.width / 2 , canvas.height / 2 + 100);
         //boton de restart debajo de PUNTUAION TOTAL con el texto "REINICIAR" y centrado
-        button(canvas.width / 2 - 100, canvas.height / 2 + 100, 200, 50, "0,0,0", "255,193,75", 1, "REINICIAR", "255,255,255", 20, "Arial", "restart", 13);
+        button(canvas.width / 2 - 100, canvas.height / 2 + 130, 200, 50, "255,0,0", "255,0,0", 1, "Volver al Menu", "255,255,255", 20, "Arial", "restart", 13);
+
+
     }
 
     function button(posX, posY, width, height, hexColor, hexColorToggle, transparency, text, textcolor, textsize, textfont, action, key){
-        console.log("Botón de inicio")
-
-
         // color con transparencia
         bufferctx.fillStyle = "rgba(" + hexColor + "," + transparency + ")";
         // dibujar el rectángulo
         bufferctx.fillRect(posX, posY, width, height);
-        //texto
+        //texto centrado
         bufferctx.fillStyle = "rgb(" + textcolor + ")";
         bufferctx.font = textsize + "px " + textfont;
-        //texto centrado dentro del rectángulo
-        bufferctx.fillText(text, posX + width / 2 - bufferctx.measureText(text).width / 2, posY + height / 2 + textsize / 2);
+        bufferctx.fillText(text, posX + width / 2  , posY + height / 2 + 5);
 
         canvas.addEventListener("click", function(event) {
             // verificar si las coordenadas del clic están dentro del área del botón
             if (event.clientX >= posX && event.clientX <= posX + width &&
-                event.clientY >= posY && event.clientY <= posY + height) {
+                event.clientY >= posY && event.clientY <= posY + height && !puttingText) {
                 // ejecutar la acción correspondiente
                 //clear
                 bufferctx.fillStyle = "rgba(" + hexColorToggle + "," + transparency + ")";
                 bufferctx.fillRect(posX, posY, width, height);
-                console.log("Botón de inicio clickeado");
+                ShowMenu = true;
+                openedScores = false;
+                openedControls = false;
+                openedCredits = false;
+                resetGame();
             }
         });
+    }
+
+    function resetGame(){
+        //reiniciar parametros del juego
+        player.life = 3;
+        player.score = 0;
+        evilCounter = 0;
+        evilLife = 0;
+        evilShots = 1;
+        totalEvils = 10;
+        evilhit = false;
+        congratulations = false;
+        youLoose = false;
     }
 
 
@@ -635,26 +671,20 @@ var game = (function () {
         drawBackground();
         playerAction();
 
+        if (resetedGame ) {
+            resetGame();
+            resetedGame = false;
+        }
+
         if (ShowMenu) {
-            console.log("Mostrando menu");
             ciclos++;
             drawMenu();
-            if (resetGame) {
-                resetGame = false;
-                console.log("Reseteando juego");
-                player.score = 0;
-                player.life = 3;
-            }
-
         }else{
 
             if (youLoose) {
                 showGameOver();
-                //todo aqui el return no deja hacer mas nada
-                //return;
             }else if(congratulations){
                 showCongratulations();
-
             }else{
                 if (printTexto){
                     bufferctx.fillStyle="rgba(255,255,255,"+transparenciaTexto+")";
@@ -856,13 +886,120 @@ var game = (function () {
         }
     }
 
-    /******************************* MEJORES PUNTUACIONES (LOCALSTORAGE) *******************************/
-    function saveFinalScore() {
-        localStorage.setItem(getFinalScoreDate(), getTotalScore());
-        showBestScores();
-        removeNoBestScores();
+    function showModalForText(x, y, width, height) {
+        // Crear un cuadro de fondo para el cuadro de texto
+        bufferctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+        bufferctx.fillRect(x, y, width, height);
+        puttingText = true;
+
+        // Crear un formulario para que el usuario pueda ingresar su nombre
+        var form = document.createElement("form");
+        form.style.position = "absolute";
+        form.style.left = x + "px";
+        form.style.top = y + "px";
+        form.style.width = width + "px";
+        form.style.height = height + "px";
+        form.style.fontSize = "20px";
+        form.style.padding = "10px";
+        form.style.border = "none";
+        form.style.background = "transparent";
+        form.style.color = "white";
+        form.style.fontFamily = "Arial";
+        form.style.textAlign = "center";
+
+        // Crear un campo de texto para que el usuario ingrese su nombre
+        var input = document.createElement("input");
+        input.type = "text";
+        input.name = "name";
+        input.placeholder = "Ingrese su nombre (si deja vacio sera default)";
+        input.style.width = "100%";
+        input.style.height = "40px";
+        input.style.marginBottom = "10px";
+        form.appendChild(input);
+
+        // Crear un botón para enviar el formulario
+        var button = document.createElement("button");
+        button.type = "submit";
+        button.textContent = "Aceptar";
+        button.style.width = "100%";
+        button.style.height = "40px";
+        form.appendChild(button);
+
+        // Agregar el formulario al documento y enfocar el campo de texto
+        document.body.appendChild(form);
+        input.focus();
+
+
+
+        // Retornar el texto ingresado por el usuario cuando se envíe el formulario
+        return new Promise(function(resolve, reject) {
+            form.addEventListener("submit", function(e) {
+                e.preventDefault();
+                var formData = new FormData(form);
+                var name = formData.get("name");
+                resolve(name);
+                form.remove();
+
+            });
+        });
+
+
     }
 
+
+    /******************************* MEJORES PUNTUACIONES (LOCALSTORAGE) *******************************/
+    function saveFinalScore(namesito) {
+
+        //recortar a 10 caracteres
+        if (namesito.length > 10){
+            namesito = namesito.substring(0,10);
+        }
+
+        let scoreRecord ={
+            name: namesito,
+            score: getTotalScore(),
+            dateStyle: getFinalScoreDate()
+        }
+        let scoreRecords = JSON.parse(localStorage.getItem("scoreRecords"));
+        scoreRecords.push(scoreRecord);
+        localStorage.setItem("scoreRecords", JSON.stringify(scoreRecords));
+
+        removeNoBestScores();
+
+    }
+
+    //funcion para saer si el score es mejor que alguno de los guardados
+    function isBestScore() {
+        let scoreRecords = JSON.parse(localStorage.getItem("scoreRecords"));
+        let bestScore = false;
+        scoreRecords.sort((a, b) => (a.score < b.score) ? 1 : -1);
+        if (scoreRecords.length < totalBestScoresToShow){
+            bestScore = true;
+        }else{
+            if (getTotalScore() > scoreRecords[scoreRecords.length-1].score){
+                bestScore = true;
+            }
+        }
+        return bestScore;
+    }
+
+//funcion para mantener siempre 6 puntuaciones y ordenarlas, si sorepasan las 6 se borran las peores
+    function removeNoBestScores() {
+        let scoreRecords = JSON.parse(localStorage.getItem("scoreRecords"));
+        let scoreErase = [];
+        scoreRecords.sort((a, b) => (a.score < b.score) ? 1 : -1);
+        if (scoreRecords.length > totalBestScoresToShow){
+            for (let i = totalBestScoresToShow; i < scoreRecords.length; i++) {
+                scoreErase.push(i);
+            }
+            for (let i = 0; i < scoreErase.length; i++) {
+                scoreRecords.splice(scoreErase[i],1);
+            }
+        }
+        localStorage.setItem("scoreRecords", JSON.stringify(scoreRecords));
+    }
+
+    //funcion OK
     function getFinalScoreDate() {
         var date = new Date();
         return fillZero(date.getDay()+1)+'/'+
@@ -873,6 +1010,7 @@ var game = (function () {
             fillZero(date.getSeconds());
     }
 
+    //Funcion Ok usada en fechas
     function fillZero(number) {
         if (number < 10) {
             return '0' + number;
@@ -880,82 +1018,25 @@ var game = (function () {
         return number;
     }
 
-    function getBestScoreKeys() {
-        var bestScores = getAllScores();
-        bestScores.sort(function (a, b) {return b - a;});
-        bestScores = bestScores.slice(0, totalBestScoresToShow);
-        var bestScoreKeys = [];
-        for (var j = 0; j < bestScores.length; j++) {
-            var score = bestScores[j];
-            for (var i = 0; i < localStorage.length; i++) {
-                var key = localStorage.key(i);
-                if (parseInt(localStorage.getItem(key)) == score) {
-                    bestScoreKeys.push(key);
-                }
-            }
-        }
-        return bestScoreKeys.slice(0, totalBestScoresToShow);
-    }
 
     function getAllScores() {
-        var all = [];
-        for (var i=0; i < localStorage.length; i++) {
-            all[i] = (localStorage.getItem(localStorage.key(i)));
+        const puntuacionesJSON = localStorage.getItem("scoreRecords");
+        const puntuaciones = JSON.parse(puntuacionesJSON);
+
+        //lista para guardar las puntuaciones en un array donde 0 es el nombre, 1 es la puntuacion y 2 es la fecha
+        let listaPuntuaciones = [];
+        for (let i = 0; i < puntuaciones.length; i++) {
+            listaPuntuaciones[i] = []; // Inicializar cada elemento del array con otro array vacío
+            console.log(puntuaciones[i].name);
+            listaPuntuaciones[i][0] = puntuaciones[i].name;
+            listaPuntuaciones[i][1] = puntuaciones[i].score;
+            listaPuntuaciones[i][2] = puntuaciones[i].dateStyle;
         }
-        return all;
+        return listaPuntuaciones;
+
     }
 
-    function showBestScores() {
-        var bestScores = getBestScoreKeys();
-        var bestScoresList = document.getElementById('puntuaciones');
-        if (bestScoresList) {
-            clearList(bestScoresList);
-            for (var i=0; i < bestScores.length; i++) {
-                addListElement(bestScoresList, bestScores[i], i==0?'negrita':null);
-                addListElement(bestScoresList, localStorage.getItem(bestScores[i]), i==0?'negrita':null);
-            }
-        }
-    }
 
-    function clearList(list) {
-        list.innerHTML = '';
-        addListElement(list, "Fecha");
-        addListElement(list, "Puntos");
-    }
-
-    function addListElement(list, content, className) {
-        var element = document.createElement('li');
-        if (className) {
-            element.setAttribute("class", className);
-        }
-        element.innerHTML = content;
-        list.appendChild(element);
-    }
-
-    // extendemos el objeto array con un metodo "containsElement"
-    Array.prototype.containsElement = function(element) {
-        for (var i = 0; i < this.length; i++) {
-            if (this[i] == element) {
-                return true;
-            }
-        }
-        return false;
-    };
-
-    function removeNoBestScores() {
-        var scoresToRemove = [];
-        var bestScoreKeys = getBestScoreKeys();
-        for (var i=0; i < localStorage.length; i++) {
-            var key = localStorage.key(i);
-            if (!bestScoreKeys.containsElement(key)) {
-                scoresToRemove.push(key);
-            }
-        }
-        for (var j = 0; j < scoresToRemove.length; j++) {
-            var scoreToRemoveKey = scoresToRemove[j];
-            localStorage.removeItem(scoreToRemoveKey);
-        }
-    }
     /******************************* FIN MEJORES PUNTUACIONES *******************************/
 
 
@@ -970,6 +1051,7 @@ var game = (function () {
     var openedCredits = false;
     var movimientoLogo=20;
     var logobajando = true;
+    var openedScores = false;
 
 
 
@@ -987,27 +1069,30 @@ var game = (function () {
 // Dibujar el menú
     function drawMenu() {
         //logo
-        //mover hacia arriba y abajo el logo
-        if (logobajando) {
-            if (movimientoLogo < 20) {
-                movimientoLogo += 0.1;
-            } else {
-                logobajando = false;
+        //mover hacia arriba y abajo el logo de forma suave
+
+        if (logobajando){
+            movimientoLogo+=0.2;
+            if (movimientoLogo>=20){
+                logobajando=false;
             }
-        } else {
-            if (movimientoLogo > 10) {
-                movimientoLogo -= 0.1;
-            } else {
-                logobajando = true;
+        }else{
+            movimientoLogo-=0.2;
+            if (movimientoLogo<=0){
+                logobajando=true;
             }
         }
+
         bufferctx.drawImage(logo, canvas.width / 2 - logo.width / 2, 50- movimientoLogo, logo.width, logo.height);
 
         //original
         //ctx.drawImage(logo, canvas.width/2 - logo.width/2, 50);
         //texto del nombre del juego en fuente pixelada
         //a different color random generated
-        colorNamejuego = "rgb(" + Math.floor(Math.random() * 255) + "," + Math.floor(Math.random() * 255) + "," + Math.floor(Math.random() * 255) + ")";
+        //cambiar el color cada 5 ciclos
+        if (ciclos % 10 == 0) {
+            colorNamejuego = "rgb(" + Math.floor(Math.random() * 255) + "," + Math.floor(Math.random() * 255) + "," + Math.floor(Math.random() * 255) + ")";
+        }
         bufferctx.fillStyle = colorNamejuego;
         //add the text UDES-Fender and Galaxy with a border black
         bufferctx.strokeStyle = "black";
@@ -1023,7 +1108,7 @@ var game = (function () {
         for (var i = 0; i < buttons.length; i++) {
             var button = buttons[i];
             if (ciclos >= 20 && button.pressed) {
-                buttons[i].color = "gray";
+                buttons[i].color = "blue";
                 ciclos = 0;
                 buttons[i].pressed = false;
             }
@@ -1050,6 +1135,9 @@ var game = (function () {
         if (openedCredits) {
             drawCreditsPopup();
         }
+        if (openedScores){
+            drawBestScores();
+        }
 
 
         canvas.addEventListener("click", function(event) {
@@ -1064,17 +1152,17 @@ var game = (function () {
                     button.color = "red";
                     // Aquí puedes agregar la lógica para cada botón
                     if (button.text === "Jugar") {
-                        console.log("Jugar");
+                        ShowMenu = false;
                         // Lógica para el botón Jugar
                     } else if (button.text === "Modo infinito") {
                         console.log("Modo infinito");
                         // Lógica para el botón Modo infinito
                     } else if (button.text === "Controles") {
-                        console.log("Controles");
                         openedControls = true;
                     } else if (button.text === "Créditos") {
-                        console.log("Créditos");
                         openedCredits = true;
+                    }else if(button.text === "Tabla de puntuaciones"){
+                        openedScores = true;
                     }
 
 
@@ -1106,19 +1194,32 @@ var game = (function () {
         bufferctx.drawImage(safari, (canvas.width / 2 - 200 + 50 + 250)+20+75, canvas.height / 2 - 200 + 50 + 225 + 20, 40, 40);
 
         //2023
-        ctx.fillText("2023 Ⓒ", canvas.width / 2 + 40, canvas.height / 2 + 250);
+        bufferctx.fillText("2023 Ⓒ", canvas.width / 2 + 40, canvas.height / 2 + 250);
+    }
+
+    function drawBestScores(){
+        let margensuperior = 75;
+        let posXCentrado = canvas.width / 2 - 200 + 100;
+
+        createModal(canvas, canvas.width / 2 - 200, canvas.height / 2 - 200, 600, 500, "Tabla de puntuaciones", 40);
+        let scores = getAllScores();
+        bufferctx.fillStyle = "white";
+        bufferctx.font = "20px Arial";
+        bufferctx.textAlign = "center";
+        bufferctx.fillText("Nombre", posXCentrado, canvas.height / 2 - 200 + 50 + margensuperior);
+        bufferctx.fillText("Puntuación", posXCentrado + 150, canvas.height / 2 - 200 + 50 + margensuperior);
+        bufferctx.fillText("Fecha", posXCentrado + 350, canvas.height / 2 - 200 + 50 + margensuperior);
+        bufferctx.fillText("__________________________________________________", posXCentrado+200, canvas.height / 2 - 200 + 50 + margensuperior + 15);
+        for (let i = 0; i < scores.length; i++) {
+            bufferctx.fillText(scores[i][0], posXCentrado, canvas.height / 2 - 200 + 50 + margensuperior + 50 + (i * 50));
+            bufferctx.fillText(scores[i][1], posXCentrado + 150, canvas.height / 2 - 200 + 50 + margensuperior + 50 + (i * 50));
+            bufferctx.fillText(scores[i][2], posXCentrado + 350, canvas.height / 2 - 200 + 50 + margensuperior + 50 + (i * 50));
+        }
+
     }
 
     function drawControlsPopup() {
         createModal(canvas, canvas.width/2 - 200, canvas.height/2 - 200, 500, 500, "Controles", 40);
-
-        //llamo imagenes
-        let space = new Image();
-        let izq = new Image();
-        let der = new Image();
-        space.src = "images/space.gif";
-        izq.src = "images/izquierda.png";
-        der.src = "images/derecha.png";
 
         let margensuperior = 50;
         //poner imagenes en el modal de controles y a su lado el texto
@@ -1139,6 +1240,7 @@ var game = (function () {
         // Dibujar el cuadro de fondo del cuadro emergente
         bufferctx.globalCompositeOperation = "source-over";
         bufferctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+        //dibujarlo en el centro
         bufferctx.fillRect(x, y, width, height);
 
         // Dibujar el texto del modal
@@ -1163,12 +1265,18 @@ var game = (function () {
             if (mouseX > x + width - 25 && mouseX < x + width && mouseY > y && mouseY < y + 25) {
                 openedControls = false;
                 openedCredits = false;
+                openedScores = false;
             }
         });
     }
 
     function initMenu(){
         // botones del menu de inicio
+        //inicio el localStorage de los records si no existe
+        if (localStorage.getItem("scoreRecords") === null) {
+            localStorage.setItem("scoreRecords", JSON.stringify([]));
+        }
+
         buttons = [
             {
                 //botones del menu
@@ -1178,7 +1286,7 @@ var game = (function () {
                 y: canvas.height / 2 - 50 + 50,
                 width: 240,
                 height: 50,
-                color: "gray",
+                color: "blue",
                 pressed: false
             },
             {
@@ -1187,7 +1295,7 @@ var game = (function () {
                 y: canvas.height / 2 + 75,
                 width: 240,
                 height: 50,
-                color: "gray",
+                color: "blue",
                 pressed: false
             }, {
                 text: "Tabla de puntuaciones",
@@ -1195,7 +1303,7 @@ var game = (function () {
                 y: canvas.height / 2 + 75 + 75,
                 width: 240,
                 height: 50,
-                color: "gray",
+                color: "blue",
                 pressed: false
             }, {
                 text: "Controles",
@@ -1203,7 +1311,7 @@ var game = (function () {
                 y: canvas.height / 2 + 75 + 75 + 75,
                 width: 240,
                 height: 50,
-                color: "gray",
+                color: "blue",
                 pressed: false
             },
             {
@@ -1212,7 +1320,7 @@ var game = (function () {
                 y: canvas.height / 2 + 75 + 75 + 75 + 75,
                 width: 240,
                 height: 50,
-                color: "gray",
+                color: "blue",
                 pressed: false
             }
         ]
