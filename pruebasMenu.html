@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+
+    <style>
+        canvas {
+            background-color: black;
+            display: block;
+            margin: 0 auto;
+        }
+        body {
+            margin: 0;
+        }
+
+    </style>
+</head>
+<body>
+<canvas id="canvas"></canvas>
+
+<!--Script para hacer el fondo de tamaño completo-->
+<script type="text/javascript">
+
+    var w = window.innerWidth;
+    var h = window.innerHeight;
+
+    var canvas = document.getElementById('canvas');
+    canvas.width = w;
+    canvas.height = h;
+
+    // Por ejemplo, si tienes un objeto que se mueve a lo largo de la pantalla:
+    var myObject = {
+        x: canvas.width / 2,
+        y: canvas.height - 50,
+        speed: 5
+    };
+</script>
+
+<script>
+        // Obtener el canvas y el contexto
+        var canvas = document.getElementById("canvas");
+        var ctx = canvas.getContext("2d");
+        var ciclos = 0;
+        // Imagen del logo
+        var logo = new Image();
+        logo.src = "/images/logo.png";
+        var openedControls = false;
+        var openedCredits = false;
+        var movimientoLogo=20;
+        var logobajando = true;
+
+        // Imágenes en la parte inferior izquierda y derecha
+
+        var img2 = new Image();
+        img2.src = "/images/empresaLogo.png";
+        let img1 = new Image();
+        img1.src = "images/autentia.png"
+
+        // Escala de las imágenes
+        var scaleFactor = 0.5;
+
+        var colorNamejuego = "white";
+
+        //fuente personalizada
+        var customFont = new FontFace('Press Start 2P', 'url(/css/PressStart2P-Regular.ttf)');
+        // Esperar a que se cargue la fuente
+        customFont.load().then(function(font) {
+            // Establecer la fuente como la fuente actual del contexto del canvas
+            document.fonts.add(font);
+            ctx.font = "30px 'Press Start 2P', Press Start 2P"; // Ejemplo de cómo utilizar la fuente personalizada
+        });
+
+
+        // Botones del menú
+        var buttons = [
+            {
+                //botones del menu
+                //texto centrado en el boton
+                text: "Jugar",
+                x: canvas.width / 2 - 125,
+                y: canvas.height / 2 - 50 + 50,
+                width: 240,
+                height: 50,
+                color: "gray",
+                pressed: false
+            },
+            {
+                text: "Modo infinito",
+                x: canvas.width / 2 - 125,
+                y: canvas.height / 2 + 75,
+                width: 240,
+                height: 50,
+                color: "gray",
+                pressed: false
+            }, {
+                text: "Tabla de puntuaciones",
+                x: canvas.width / 2 - 125,
+                y: canvas.height / 2 + 75 + 75,
+                width: 240,
+                height: 50,
+                color: "gray",
+                pressed: false
+            }, {
+                text: "Controles",
+                x: canvas.width / 2 - 125,
+                y: canvas.height / 2 + 75 + 75 + 75,
+                width: 240,
+                height: 50,
+                color: "gray",
+                pressed: false
+            },
+            {
+                text: "Créditos",
+                x: canvas.width / 2 - 125,
+                y: canvas.height / 2 + 75 + 75 + 75 + 75,
+                width: 240,
+                height: 50,
+                color: "gray",
+                pressed: false
+            }
+        ];
+
+        // Dibujar el menú
+        function drawMenu() {
+        // Fondo
+            let color = ("#000451")
+            ctx.fillStyle = color;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+
+        //logo
+            //mover hacia arriba y abajo el logo
+            if (logobajando) {
+                if (movimientoLogo < 20) {
+                    movimientoLogo += 0.1;
+                } else {
+                    logobajando = false;
+                }
+            } else {
+                if (movimientoLogo > 10) {
+                    movimientoLogo -= 0.1;
+                } else {
+                    logobajando = true;
+                }
+            }
+            ctx.drawImage(logo, canvas.width / 2 - logo.width / 2, 50- movimientoLogo, logo.width, logo.height);
+
+            //original
+            //ctx.drawImage(logo, canvas.width/2 - logo.width/2, 50);
+            //texto del nombre del juego en fuente pixelada
+            //a different color random generated
+            colorNamejuego = "rgb(" + Math.floor(Math.random() * 255) + "," + Math.floor(Math.random() * 255) + "," + Math.floor(Math.random() * 255) + ")";
+            ctx.fillStyle = colorNamejuego;
+            //add the text UDES-Fender and Galaxy with a border black
+            ctx.strokeStyle = "black";
+            ctx.lineWidth = 10;
+            ctx.font = "50px 'Press Start 2P'";
+            ctx.textAlign = "center";
+            ctx.strokeText("UDES-Fender", canvas.width / 2, logo.height-60);
+            ctx.strokeText("Galaxy", canvas.width / 2, logo.height);
+            ctx.fillText("UDES-Fender", canvas.width / 2, logo.height-60);
+            ctx.fillText("Galaxy", canvas.width / 2, logo.height);
+
+        // Botones
+        for (var i = 0; i < buttons.length; i++) {
+            var button = buttons[i];
+            if (ciclos >= 20 && button.pressed) {
+                buttons[i].color = "gray";
+                ciclos = 0;
+                buttons[i].pressed = false;
+            }
+
+        ctx.fillStyle = button.color;
+        ctx.fillRect(button.x, button.y, button.width, button.height);
+        ctx.fillStyle = "white";
+        ctx.font = "20px Arial";
+        //text in the middle of the button
+        ctx.textAlign = "center";
+        ctx.fillText(button.text, button.x + button.width/2, button.y + button.height/2 + 5);
+
+    }
+
+
+
+        // Imágenes
+        ctx.drawImage(img1, 20, (canvas.height - img1.height*scaleFactor)-20, img1.width*scaleFactor, img1.height*scaleFactor);
+        ctx.drawImage(img2,canvas.width - img2.width*scaleFactor - 20, (canvas.height - img2.height*scaleFactor)-20, img2.width*scaleFactor, img2.height*scaleFactor);
+
+            if (openedControls) {
+                drawControlsPopup();
+            }
+            if (openedCredits) {
+                drawCreditsPopup();
+            }
+
+    }
+
+        // Manejador de eventos para los botones
+        canvas.addEventListener("click", function(event) {
+        var x = event.pageX - canvas.offsetLeft;
+        var y = event.pageY - canvas.offsetTop;
+        for (var i = 0; i < buttons.length; i++) {
+            var button = buttons[i];
+            button.pressed = true;
+
+            if (x > button.x && x < button.x + button.width && y > button.y && y < button.y + button.height && !openedControls && !openedCredits) {
+                // Cambiar el color del botón al hacer clic
+                button.color = "red";
+                // Aquí puedes agregar la lógica para cada botón
+                if (button.text === "Jugar") {
+                    console.log("Jugar");
+                // Lógica para el botón Jugar
+                } else if (button.text === "Modo infinito") {
+                    console.log("Modo infinito");
+                // Lógica para el botón Modo infinito
+                } else if (button.text === "Controles") {
+                    console.log("Controles");
+                    openedControls = true;
+                } else if (button.text === "Créditos") {
+                    console.log("Créditos");
+                    openedCredits = true;
+                }
+
+
+            }
+        }
+        });
+
+
+        function drawCreditsPopup(){
+            createModal(canvas, canvas.width / 2 - 200, canvas.height / 2 - 200, 500, 500, "Créditos", 40);
+            ctx.fillStyle = "white";
+            ctx.font = "20px Arial";
+            ctx.textAlign = "center";
+            ctx.fillText("Desarrollado con ❤️:", canvas.width / 2 + 40, canvas.height / 2 - 200 + 125);
+            ctx.fillText("Jair Andrés González Ruiz", canvas.width / 2 + 40, canvas.height / 2 - 200 + 50 + 125);
+            // Probado en
+            ctx.fillText("Probado en:", canvas.width / 2 + 40, canvas.height / 2 - 200 + 50 + 125 + 75);
+            //llamo imagenes de los navegadores
+            let chrome = new Image();
+            let firefox = new Image();
+            let opera = new Image();
+            let edge = new Image();
+            let brave = new Image();
+            let safari = new Image();
+            chrome.src = "images/browsers/chrome.png";
+            firefox.src = "images/browsers/firefox.png";
+            opera.src = "images/browsers/opera.png";
+            edge.src = "images/browsers/edge.png";
+            brave.src = "images/browsers/brave.png";
+            safari.src = "images/browsers/safari.png";
+            //poner imagenes en el modal de creditos
+            ctx.drawImage(chrome, canvas.width / 2 - 200 + 50+20, canvas.height / 2 - 200 + 50 + 225 + 20, 40, 40);
+            ctx.drawImage(firefox, (canvas.width / 2 - 200 + 50 + 50)+20+15, canvas.height / 2 - 200 + 50 + 225 + 20, 40, 40);
+            ctx.drawImage(opera, (canvas.width / 2 - 200 + 50 + 100)+20+30, canvas.height / 2 - 200 + 50 + 225 + 20, 40, 40);
+            ctx.drawImage(edge, (canvas.width / 2 - 200 + 50 + 150)+20+45, canvas.height / 2 - 200 + 50 + 225 + 20, 40, 40);
+            ctx.drawImage(brave, (canvas.width / 2 - 200 + 50 + 200)+20+60, canvas.height / 2 - 200 + 50 + 225 + 20, 40, 45);
+            ctx.drawImage(safari, (canvas.width / 2 - 200 + 50 + 250)+20+75, canvas.height / 2 - 200 + 50 + 225 + 20, 40, 40);
+
+            //2023
+            ctx.fillText("2023 Ⓒ", canvas.width / 2 + 40, canvas.height / 2 + 250);
+
+
+        }
+
+        function drawControlsPopup() {
+            createModal(canvas, canvas.width/2 - 200, canvas.height/2 - 200, 500, 500, "Controles", 40);
+
+            //llamo imagenes
+            let space = new Image();
+            let izq = new Image();
+            let der = new Image();
+            space.src = "images/space.gif";
+            izq.src = "images/izquierda.png";
+            der.src = "images/derecha.png";
+
+            let margensuperior = 50;
+            //poner imagenes en el modal de controles y a su lado el texto
+            ctx.drawImage(space, canvas.width / 2 - 200 + 50, canvas.height / 2 - 200 + 50 + margensuperior, 75, 40);
+            ctx.drawImage(izq, canvas.width / 2 - 200 + 50, canvas.height / 2 - 200 + 50 + 70 + margensuperior, 50, 50);
+            ctx.drawImage(der, canvas.width / 2 - 200 + 50, canvas.height / 2 - 200 + 50 + 150 + margensuperior, 50, 50);
+
+            ctx.fillStyle = "white";
+            ctx.font = "20px Arial";
+            ctx.textAlign = "left";
+
+            ctx.fillText("Disparar", canvas.width / 2 - 200 + 50 + 75 + 20, canvas.height / 2 - 200 + 50 + 30 + margensuperior);
+            ctx.fillText("Moverse a la izquierda", canvas.width / 2 - 200 + 50 + 75 + 20, canvas.height / 2 - 200 + 50 + 70 + 30 + margensuperior);
+            ctx.fillText("Moverse a la derecha", canvas.width / 2 - 200 + 50 + 75 + 20, canvas.height / 2 - 200 + 50 + 150 + 30 + margensuperior);
+
+
+        }
+
+        function createModal(canvas, x, y, width, height, titulo, textSize) {
+            // Dibujar el cuadro de fondo del cuadro emergente
+            ctx.globalCompositeOperation = "source-over";
+            ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+            ctx.fillRect(x, y, width, height);
+
+            // Dibujar el texto del modal
+            ctx.fillStyle = "white";
+            ctx.font = textSize + "px Arial";
+            //titulo del modal centrado en la parte superior
+            ctx.textAlign = "center";
+            ctx.fillText(titulo, x + width/2, y + textSize + 20);
+
+            // Dibujar el botón de "X" con fondo cuadrado
+            ctx.fillStyle = "red";
+            ctx.fillRect(x + width - 25, y, 25, 25);
+            ctx.fillStyle = "white";
+            ctx.font = "20px Arial";
+            ctx.textAlign = "center";
+            ctx.fillText("X", x + width - 12.5, y + 20);
+
+            // Agregar event listener para cerrar el modal al hacer clic en "X"
+            canvas.addEventListener("click", function(event) {
+                var mouseX = event.pageX - canvas.offsetLeft;
+                var mouseY = event.pageY - canvas.offsetTop;
+                if (mouseX > x + width - 25 && mouseX < x + width && mouseY > y && mouseY < y + 25) {
+                    openedControls = false;
+                    openedCredits = false;
+                }
+            });
+        }
+
+
+
+        setInterval(function () {
+            //console log every 60 ciclos
+            ciclos++;
+            drawMenu();
+        }, 1000 / 60);
+
+</script>
+
+</body>
+
+</html>

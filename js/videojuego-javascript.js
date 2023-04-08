@@ -1,4 +1,7 @@
 // nos marca los pulsos del juego
+window.msRequestAnimationFrame = undefined;
+window.oRequestAnimationFrame = undefined;
+window.mozRequestAnimationFrame = undefined;
 window.requestAnimFrame = (function () {
 
     return  window.requestAnimationFrame        ||
@@ -38,7 +41,7 @@ var game = (function () {
         congratulations = false,
         minHorizontalOffset = 100,
         maxHorizontalOffset = 400,
-        evilShots = 5,   // disparos que tiene el malo al principio
+        evilShots = 10,   // disparos que tiene el malo al principio
         evilLife = 3,    // vidas que tiene el malo al principio (se van incrementando)
         finalBossShots = 30,
         finalBossLife = 12,
@@ -61,16 +64,20 @@ var game = (function () {
         keyMap = {
             left: 37,
             right: 39,
-            fire: 32     // tecla espacio
+            fire: 32,     // tecla espacio
+            R: 82,       // tecla R
+            up: 38, //tecla arriba
+            down: 40, //tecla abajo
+            suicide: 77 //tecla M
         },
         nextPlayerShot = 0,
-        //todo variable para modificar el delay de balas, para powerup (en ms tal vez)
+        //todo variable para modificar el delay de balas, para powerup (en ms tal vez) 250
         playerShotDelay = 250,
         now = 0;
 
     //otras variables para con estrellitas y mas uso
     var stars = [],
-        FPS = 120,
+        FPS = 500,
         initiated = true,//al comenzar el juego
         starinit = 80,//cuantas estrellas se dibujan al principio para que se vean dibujadas en toda la pantalla al comenzar
         colorBottom = "#000043",
@@ -81,7 +88,7 @@ var game = (function () {
         GameInitiated = true,
         GameInitiatedStars = true;
 
-    //variables para dibujar texto despues de matar enemigos
+    //variables para dibujar texto después de matar enemigos
     var posXTexto = 0,
         posYTexto = 0,
         printTexto = false,
@@ -212,6 +219,17 @@ var game = (function () {
                 player.posX += player.speed;
             if (keyPressed.fire)
                 shoot();
+            if(keyPressed.R)
+                //todo reiniciar el juego
+                console.log("reiniciar");
+            if (keyPressed.up)
+                console.log("up");
+                player.posY -= player.speed;
+            if (keyPressed.down)
+                console.log("down")
+                player.posY += player.speed;
+            if (keyPressed.suicide)
+                player.killPlayer()
         };
 
         player.killPlayer = function() {
@@ -287,8 +305,7 @@ var game = (function () {
         this.lifeBarWidth = 1;
         this.NumberLifes =0;
         this.firstShot = true;
-        //colo
-        this.hit = false;
+
 
         var desplazamientoHorizontal = minHorizontalOffset +
             getRandomNumber(maxHorizontalOffset - minHorizontalOffset);
@@ -331,10 +348,10 @@ var game = (function () {
 
             if (evilhit){
                 ciclosHit+=1;
-                bufferctx.globalCompositeOperation = "difference";
+                bufferctx.globalCompositeOperation = "exclusion";
                 bufferctx.drawImage(this.image, this.posX, this.posY);
                 bufferctx.globalCompositeOperation = "source-over";
-                if (ciclosHit>=10){
+                if (ciclosHit>=15){
                     evilhit = false;
                     ciclosHit = 0;
                 }
@@ -522,7 +539,40 @@ var game = (function () {
         bufferctx.fillStyle="rgb(255,0,0)";
         bufferctx.font="bold 35px Arial";
         bufferctx.fillText("GAME OVER", canvas.width / 2 - 100, canvas.height / 2);
+
+
+        bufferctx.fillText("PUNTUACION TOTAL: " + getTotalScore(), canvas.width / 2 - 200, canvas.height / 2 + 60);
+        //boton de restart debajo de PUNTUAION TOTAL con el texto "REINICIAR" y centrado
+        button(canvas.width / 2 - 100, canvas.height / 2 + 100, 200, 50, "0,0,0", "255,193,75", 1, "REINICIAR", "255,255,255", 20, "Arial", "restart", 13);
     }
+
+    function button(posX, posY, width, height, hexColor, hexColorToggle, transparency, text, textcolor, textsize, textfont, action, key){
+        console.log("Botón de inicio")
+
+
+        // color con transparencia
+        bufferctx.fillStyle = "rgba(" + hexColor + "," + transparency + ")";
+        // dibujar el rectángulo
+        bufferctx.fillRect(posX, posY, width, height);
+        //texto
+        bufferctx.fillStyle = "rgb(" + textcolor + ")";
+        bufferctx.font = textsize + "px " + textfont;
+        //texto centrado dentro del rectángulo
+        bufferctx.fillText(text, posX + width / 2 - bufferctx.measureText(text).width / 2, posY + height / 2 + textsize / 2);
+
+        canvas.addEventListener("click", function(event) {
+            // verificar si las coordenadas del clic están dentro del área del botón
+            if (event.clientX >= posX && event.clientX <= posX + width &&
+                event.clientY >= posY && event.clientY <= posY + height) {
+                // ejecutar la acción correspondiente
+                //clear
+                bufferctx.fillStyle = "rgba(" + hexColorToggle + "," + transparency + ")";
+                bufferctx.fillRect(posX, posY, width, height);
+                console.log("Botón de inicio clickeado");
+            }
+        });
+    }
+
 
     function showCongratulations () {
         bufferctx.fillStyle="rgb(204,50,153)";
@@ -537,85 +587,58 @@ var game = (function () {
         return player.score + player.life * 5;
     }
 
-    function logFps() {
-        var fps = 0;
-        var lastCalledTime;
-
-        function updateFps() {
-            if (!lastCalledTime) {
-                lastCalledTime = performance.now();
-                fps = 0;
-                return;
-            }
-            var delta = (performance.now() - lastCalledTime) / 1000;
-            lastCalledTime = performance.now();
-            fps = Math.round(1 / delta);
-        }
-
-        function loop() {
-            updateFps();
-            console.log("FPS: " + fps);
-            requestAnimationFrame(loop);
-        }
-
-        loop();
-    }
-
 
     function update() {
 
         drawBackground();
 
-        if (congratulations) {
-            showCongratulations();
-            return;
-        }
-
-        if (printTexto){
-            //imprimir "hola mundo" en posXTexto e posYTexto
-
-            //bufferctx.fillStyle=rgba(255,255,255,transparenciaTexto);
-            //fillstyle with transparency
-            bufferctx.fillStyle="rgba(255,255,255,"+transparenciaTexto+")";
-            bufferctx.font="bold 15px Arial";
-
-            //mover texto hacia arriba
-            posYTexto -= 1;
-            transparenciaTexto -= 0.02;
-            bufferctx.fillText("+"+ scoreObtenido, posXTexto, posYTexto);
-            if (transparenciaTexto <= 0){
-                printTexto = false;
-                transparenciaTexto = 1;
-            }
-        }
-
         if (youLoose) {
             showGameOver();
-            return;
-        }
+            //todo aqui el return no deja hacer mas nada
+            //return;
+        }else if(congratulations){
+            showCongratulations();
 
-        bufferctx.drawImage(player, player.posX, player.posY);
-        bufferctx.drawImage(evil.image, evil.posX, evil.posY);
+        }else{
+            if (printTexto){
+                bufferctx.fillStyle="rgba(255,255,255,"+transparenciaTexto+")";
+                bufferctx.font="bold 15px Arial";
 
-        updateEvil();
-
-        for (var j = 0; j < playerShotsBuffer.length; j++) {
-            var disparoBueno = playerShotsBuffer[j];
-            updatePlayerShot(disparoBueno, j);
-        }
-
-        if (isEvilHittingPlayer()) {
-            player.killPlayer();
-        } else {
-            for (var i = 0; i < evilShotsBuffer.length; i++) {
-                var evilShot = evilShotsBuffer[i];
-                updateEvilShot(evilShot, i);
+                //mover texto hacia arriba
+                posYTexto -= 1;
+                transparenciaTexto -= 0.02;
+                bufferctx.fillText("+"+ scoreObtenido, posXTexto, posYTexto);
+                if (transparenciaTexto <= 0){
+                    printTexto = false;
+                    transparenciaTexto = 1;
+                }
             }
+
+
+
+            bufferctx.drawImage(player, player.posX, player.posY);
+            bufferctx.drawImage(evil.image, evil.posX, evil.posY);
+
+            updateEvil();
+
+            for (var j = 0; j < playerShotsBuffer.length; j++) {
+                var disparoBueno = playerShotsBuffer[j];
+                updatePlayerShot(disparoBueno, j);
+            }
+
+            if (isEvilHittingPlayer()) {
+                player.killPlayer();
+            } else {
+                for (var i = 0; i < evilShotsBuffer.length; i++) {
+                    var evilShot = evilShotsBuffer[i];
+                    updateEvilShot(evilShot, i);
+                }
+            }
+
+            showLifeAndScore();
+
+            playerAction();
         }
-
-        showLifeAndScore();
-
-        playerAction();
     }
 
     function updatePlayerShot(playerShot, id) {
@@ -658,23 +681,14 @@ var game = (function () {
             createStars();
             GameInitiatedStars = false;
         }
-
         spaceBackground();
         drawStars();
         moveStars();
 
-
-
-
-        /*        let gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-        bufferctx.drawImage(bgMain, 0, 0, canvas.width, canvas.height);*/
-
-
-
     }
 
-    /* ESTRELLAS NO MOLESTAR*/
 
+    /* ESTRELLAS NO MOLESTAR*/
     function Star() {
 
 

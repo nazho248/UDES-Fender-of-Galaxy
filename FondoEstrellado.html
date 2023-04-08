@@ -132,16 +132,13 @@
                 colorTop = "#3f10"+(parseInt(colorTop.substring(5,7),16)-1).toString(16);
             }
             ciclos = 0;
-            //console log el tiempo tomado hasta reiniciar ciclos en segundos
-            console.log((new Date().getTime() - startTime)/1000);
-            startTime = new Date().getTime();
         }
         ciclos++;
 
     }
-
     // llamamos a las funciones necesarias para animar las estrellas
     createStars();
+    //funcion donde el juego se renderiza
     setInterval(function () {
         spaceBackground();
         drawStars();
