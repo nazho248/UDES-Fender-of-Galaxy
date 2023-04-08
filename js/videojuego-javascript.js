@@ -86,13 +86,14 @@ var game = (function () {
         posYTexto = 0,
         printTexto = false,
         scoreObtenido = 0,
-        transparenciaTexto = 1;
+        transparenciaTexto = 1,
+        evilhit = false, //para que el malo se ponga de color rojo cuando le disparen
+        ciclosHit = 0;
 
 
 
     function loop() {
         update();
-
         draw();
     }
 
@@ -164,7 +165,13 @@ var game = (function () {
         bufferctx.fillStyle="rgb(59,59,59)";
         bufferctx.font="bold 16px Arial";
         bufferctx.fillText("Puntos: " + player.score, canvas.width - 100, 20);
-        bufferctx.fillText("Vidas: " + player.life, canvas.width - 100,40);
+        //bufferctx.fillText("Vidas: " + player.life, canvas.width - 100,40);
+        //imprimir vidas en imagenes de corazon
+        for (var i = 0; i < player.life; i++) {
+            var heart = new Image();
+            heart.src = 'images/heart.png';
+            bufferctx.drawImage(heart, canvas.width - 100 + (i * 25), 40, 16, 16);
+        }
     }
 
     function getRandomNumber(range) {
@@ -280,6 +287,8 @@ var game = (function () {
         this.lifeBarWidth = 1;
         this.NumberLifes =0;
         this.firstShot = true;
+        //colo
+        this.hit = false;
 
         var desplazamientoHorizontal = minHorizontalOffset +
             getRandomNumber(maxHorizontalOffset - minHorizontalOffset);
@@ -320,9 +329,22 @@ var game = (function () {
                 bufferctx.fillRect(this.posX + (this.image.width * this.lifeBarWidth), this.posY - 10, this.image.width * (1 - this.lifeBarWidth), 5);
             }
 
-            // Dibujar al enemigo
-            bufferctx.drawImage(this.image, this.posX, this.posY);
+            if (evilhit){
+                ciclosHit+=1;
+                bufferctx.globalCompositeOperation = "difference";
+                bufferctx.drawImage(this.image, this.posX, this.posY);
+                bufferctx.globalCompositeOperation = "source-over";
+                if (ciclosHit>=10){
+                    evilhit = false;
+                    ciclosHit = 0;
+                }
+            }else{
+                   bufferctx.drawImage(this.image, this.posX, this.posY);
 
+            }
+
+            // Dibujar al enemigo
+            //todo esto es para matarlo rapidito
             //mover el enemigo hacia la posicion del jugador
             if (this.posX < player.posX) {
                 this.posX += this.speed;
@@ -428,7 +450,7 @@ var game = (function () {
     }
 
     function createNewEvil() {
-        if (totalEvils != 1) {
+        if (totalEvils != 0) {
             evil = new Evil(evilLife + evilCounter - 1, evilShots + evilCounter - 1);
         } else {
             evil = new FinalBoss();
@@ -441,9 +463,11 @@ var game = (function () {
                 (player.posX + player.width >= evil.posX && (player.posX + player.width) <= (evil.posX + evil.image.width))));
     }
 
+    //verificar si la bala golpea al enemigo
     function checkCollisions(shot) {
         if (shot.isHittingEvil()) {
             if (evil.life > 1) {
+                evilhit = true
                 evil.life--;
             } else {
                 evil.kill();
@@ -557,7 +581,7 @@ var game = (function () {
 
             //mover texto hacia arriba
             posYTexto -= 1;
-            transparenciaTexto -= 0.05;
+            transparenciaTexto -= 0.02;
             bufferctx.fillText("+"+ scoreObtenido, posXTexto, posYTexto);
             if (transparenciaTexto <= 0){
                 printTexto = false;
@@ -667,6 +691,13 @@ var game = (function () {
         this.size = Math.random() * (15 - 5) + 5
         this.opacity = Math.random() * 0.3 + 0.5; // opacidad aleatoria entre 0.5 y 1
         this.blur = Math.random(); //si es menor que 0.5 no tiene blur
+
+        //todas las variables en 0 para saber si es error
+        /*this.speed=1;
+        this.size=3;
+        this.opacity=1;
+        this.blur=0;*/
+
     }
 
     function createStars() {
@@ -690,11 +721,15 @@ var game = (function () {
             }else{
                 bufferctx.shadowBlur = 25;
             }
+            //quitar blur
 
             // dibujamos la estrella
             bufferctx.fillStyle = 'rgba(255, 255, 255, ' + stars[i].opacity + ')';
             bufferctx.fillRect(stars[i].x, stars[i].y, stars[i].size, stars[i].size);
+
         }
+        bufferctx.shadowBlur = 0;
+
     }
 
     function moveStars() {
