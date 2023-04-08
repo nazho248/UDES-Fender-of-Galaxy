@@ -31,7 +31,7 @@ var game = (function () {
         playerShot,
         bgMain,
         bgBoss,
-        evilSpeed = 4,
+        evilSpeed = 2,
         totalEvils = 7,
         playerLife = 1, // vidas que tiene el bueno al principio
         shotSpeed = 5,
@@ -897,7 +897,7 @@ var game = (function () {
         form.style.position = "absolute";
         form.style.left = x + "px";
         form.style.top = y + "px";
-        form.style.width = width + "px";
+        form.style.width = "100%";
         form.style.height = height + "px";
         form.style.fontSize = "20px";
         form.style.padding = "10px";
@@ -907,21 +907,22 @@ var game = (function () {
         form.style.fontFamily = "Arial";
         form.style.textAlign = "center";
 
-        // Crear un campo de texto para que el usuario ingrese su nombre
+        // Crear un campo de texto para que el usuario ingrese su nombre en la mitad inferior
         var input = document.createElement("input");
         input.type = "text";
         input.name = "name";
         input.placeholder = "Ingrese su nombre (si deja vacio sera default)";
-        input.style.width = "100%";
+        input.style.width = "30%";
         input.style.height = "40px";
         input.style.marginBottom = "10px";
         form.appendChild(input);
+
 
         // Crear un botón para enviar el formulario
         var button = document.createElement("button");
         button.type = "submit";
         button.textContent = "Aceptar";
-        button.style.width = "100%";
+        button.style.width = "25%";
         button.style.height = "40px";
         form.appendChild(button);
 
@@ -955,6 +956,9 @@ var game = (function () {
             namesito = namesito.substring(0,10);
         }
 
+        if (namesito == ""){
+            namesito = "default";
+        }
         let scoreRecord ={
             name: namesito,
             score: getTotalScore(),
@@ -963,9 +967,7 @@ var game = (function () {
         let scoreRecords = JSON.parse(localStorage.getItem("scoreRecords"));
         scoreRecords.push(scoreRecord);
         localStorage.setItem("scoreRecords", JSON.stringify(scoreRecords));
-
         removeNoBestScores();
-
     }
 
     //funcion para saer si el score es mejor que alguno de los guardados
