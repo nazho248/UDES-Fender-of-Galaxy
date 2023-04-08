@@ -78,7 +78,7 @@ var game = (function () {
     //otras variables para con estrellitas y mas uso
     var stars = [],
         FPS = 500,
-        initiated = true,//al comenzar el juego
+        initiated = true,//al comenzar el juego con el menu
         starinit = 80,//cuantas estrellas se dibujan al principio para que se vean dibujadas en toda la pantalla al comenzar
         colorBottom = "#000043",
         colorMiddle = "#000000",
@@ -114,10 +114,23 @@ var game = (function () {
         customFont,
         space,
         izq,
-        der;
+        der,
+        musicplaying ,
+        audioID,
+        changeMusic = false,
+        gameBegins = false;
 
     // Imágenes en la parte inferior izquierda y derecha del menu
 
+    //variables del SFX
+    var hit1,
+        shoot1,
+        gameOver1,
+        gameOver2,
+        enemyDead,
+        asteroidExplosion1,
+        asteroidExplosion2,
+        onlyonce = 1;
 
 
     function loop() {
@@ -176,6 +189,13 @@ var game = (function () {
         izq.src = "images/izquierda.png";
         der.src = "images/derecha.png";
 
+        //precarga del SFX
+        hit1 = new Audio("/sfx/hit.mp3");
+        shoot1 = new Audio("/sfx/shoot.mp3");
+        enemyDead = new Audio("/sfx/enemy_dead.mp3");
+        gameOver1 = new Audio("/sfx/game_over1.mp3");
+        gameOver2 = new Audio("/sfx/game_over2.mp3");
+
     }
 
 
@@ -189,6 +209,7 @@ var game = (function () {
 
         canvas = document.getElementById('canvas');
         ctx = canvas.getContext("2d");
+        audioContext = new AudioContext();
 
         preloadImages();
 
@@ -218,15 +239,15 @@ var game = (function () {
     }
 
     function showLifeAndScore () {
-        bufferctx.fillStyle="rgb(59,59,59)";
+        bufferctx.fillStyle="rgb(255,255,255)";
         bufferctx.font="bold 16px Arial";
-        bufferctx.fillText("Puntos: " + player.score, canvas.width - 100, 20);
+        bufferctx.fillText("Puntos: " + player.score, canvas.width - 100, 40);
         //bufferctx.fillText("Vidas: " + player.life, canvas.width - 100,40);
         //imprimir vidas en imagenes de corazon
         for (var i = 0; i < player.life; i++) {
             var heart = new Image();
             heart.src = 'images/heart.png';
-            bufferctx.drawImage(heart, canvas.width - 100 + (i * 25), 40, 16, 16);
+            bufferctx.drawImage(heart, canvas.width - 100 + (i * 25), 60, 16, 16);
         }
     }
 
@@ -254,6 +275,8 @@ var game = (function () {
                 playerShot.add();
                 now += playerShotDelay;
                 nextPlayerShot = now + playerShotDelay;
+                if (playerShotDelay >150){
+                    shoot1.play();}
             } else {
                 now = new Date().getTime();
             }
@@ -543,10 +566,12 @@ var game = (function () {
             if (evil.life > 1) {
                 evilhit = true
                 evil.life--;
+                hit1.play();
             } else {
                 evil.kill();
                 scoreObtenido = evil.pointsToKill;
                 player.score += evil.pointsToKill;
+                enemyDead.play();
             }
             shot.deleteShot(parseInt(shot.identifier));
             return false;
@@ -596,7 +621,15 @@ var game = (function () {
         ctx.drawImage(buffer, 0, 0);
     }
 
+
     function showGameOver() {
+
+        if (onlyonce>0){
+            musicplaying.pause();
+            gameOver1.play();
+            onlyonce--;
+        }
+
         bufferctx.fillStyle="rgb(255,0,0)";
         bufferctx.font="bold 35px Arial";
         bufferctx.fillText("GAME OVER", canvas.width / 2 , canvas.height / 2);
@@ -629,6 +662,8 @@ var game = (function () {
                 //clear
                 bufferctx.fillStyle = "rgba(" + hexColorToggle + "," + transparency + ")";
                 bufferctx.fillRect(posX, posY, width, height);
+                changeMusic = true;
+                audioID = "MainMenu"
                 ShowMenu = true;
                 openedScores = false;
                 openedControls = false;
@@ -649,6 +684,7 @@ var game = (function () {
         evilhit = false;
         congratulations = false;
         youLoose = false;
+        onlyonce = 1;
     }
 
 
@@ -671,6 +707,16 @@ var game = (function () {
         drawBackground();
         playerAction();
 
+
+        if (changeMusic){
+            changeMusic = false
+            musicplaying.currentTime = 0;
+            musicplaying.pause();
+            musicplaying = document.getElementById(audioID);
+            musicplaying.loop=true;
+            musicplaying.play();
+        }
+
         if (resetedGame ) {
             resetGame();
             resetedGame = false;
@@ -680,6 +726,11 @@ var game = (function () {
             ciclos++;
             drawMenu();
         }else{
+            if (gameBegins){
+                gameBegins = false;
+                audioID = "level1"
+                changeMusic = true;
+            }
 
             if (youLoose) {
                 showGameOver();
@@ -955,8 +1006,10 @@ var game = (function () {
         if (namesito.length > 10){
             namesito = namesito.substring(0,10);
         }
+        //quitar espacios en blanco
+        namesito = namesito.replace(/\s/g, '');
 
-        if (namesito == ""){
+        if (namesito == "" ){
             namesito = "default";
         }
         let scoreRecord ={
@@ -1155,6 +1208,7 @@ var game = (function () {
                     // Aquí puedes agregar la lógica para cada botón
                     if (button.text === "Jugar") {
                         ShowMenu = false;
+                        gameBegins = true;
                         // Lógica para el botón Jugar
                     } else if (button.text === "Modo infinito") {
                         console.log("Modo infinito");
@@ -1272,12 +1326,17 @@ var game = (function () {
         });
     }
 
+
     function initMenu(){
         // botones del menu de inicio
         //inicio el localStorage de los records si no existe
         if (localStorage.getItem("scoreRecords") === null) {
             localStorage.setItem("scoreRecords", JSON.stringify([]));
         }
+
+        audioID = "MainMenu"
+        musicplaying = document.getElementById(audioID);
+        playAudioWithInteraction(musicplaying);
 
         buttons = [
             {
@@ -1339,6 +1398,30 @@ var game = (function () {
 
 
     }
+
+    /**************************** CONTROLADORES DE MUSICA *********************************************/
+    function playAudioWithInteraction(audio) {
+        // Comprobar si el usuario ha interactuado con la página
+        var hasInteracted = false;
+        musicplaying = audio
+        function checkInteraction() {
+            hasInteracted = true;
+        }
+        document.addEventListener('mousedown', checkInteraction);
+        document.addEventListener('touchstart', checkInteraction);
+
+        // Reproducir el audio cuando el usuario haya interactuado con la página
+        function playAudio() {
+            if (hasInteracted) {
+                musicplaying.loop=true;
+                musicplaying.play();
+            } else {
+                setTimeout(playAudio, 100);
+            }
+        }
+        playAudio();
+    }
+
 
     return {
         init: init
