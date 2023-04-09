@@ -396,7 +396,7 @@ var game = (function () {
             //globales para imprimir texto puntuación
             posXTexto = this.posX ;
             posYTexto = this.posY;
-            if (this.isOutOfScreen()){
+            if (this.isOutOfScreen() || youLoose){
                 printTexto = false;
             }else{
                 printTexto = true;
@@ -686,6 +686,7 @@ var game = (function () {
         congratulations = false;
         youLoose = false;
         onlyonce = 1;
+
     }
 
 
@@ -766,6 +767,9 @@ var game = (function () {
 
                 if (isEvilHittingPlayer()) {
                     player.killPlayer();
+                    if (youLoose){
+                        evil.kill();
+                    }
                 } else {
                     for (var i = 0; i < evilShotsBuffer.length; i++) {
                         var evilShot = evilShotsBuffer[i];
