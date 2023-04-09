@@ -175,11 +175,11 @@ var game = (function () {
         safari.src = "images/browsers/safari.png";
 
         img2 = new Image();
-        img2.src = "/images/empresaLogo.png";
+        img2.src = "images/empresaLogo.png";
         img1 = new Image();
         img1.src = "images/autentia.png"
         logo = new Image();
-        logo.src = "/images/logo.png";
+        logo.src = "images/logo.png";
 
         //llamo imagenes
         space = new Image();
@@ -190,11 +190,11 @@ var game = (function () {
         der.src = "images/derecha.png";
 
         //precarga del SFX
-        hit1 = new Audio("/sfx/hit.mp3");
-        shoot1 = new Audio("/sfx/shoot.mp3");
-        enemyDead = new Audio("/sfx/enemy_dead.mp3");
-        gameOver1 = new Audio("/sfx/game_over1.mp3");
-        gameOver2 = new Audio("/sfx/game_over2.mp3");
+        hit1 = new Audio("sfx/hit.mp3");
+        shoot1 = new Audio("sfx/shoot.mp3");
+        enemyDead = new Audio("sfx/enemy_dead.mp3");
+        gameOver1 = new Audio("sfx/game_over1.mp3");
+        gameOver2 = new Audio("sfx/game_over2.mp3");
 
     }
 
@@ -203,9 +203,6 @@ var game = (function () {
     function init() {
 
         //mostrar canvas negro con un circulo para que se estabilicen los fps
-
-
-
 
         canvas = document.getElementById('canvas');
         ctx = canvas.getContext("2d");
@@ -399,7 +396,11 @@ var game = (function () {
             //globales para imprimir texto puntuación
             posXTexto = this.posX ;
             posYTexto = this.posY;
-            printTexto = true;
+            if (this.isOutOfScreen()){
+                printTexto = false;
+            }else{
+                printTexto = true;
+            }
             totalEvils --;
             this.image = enemyImages.killed;
             verifyToCreateNewEvil();
@@ -1388,7 +1389,7 @@ var game = (function () {
 
 
         //fuente personalizada
-         customFont = new FontFace('Press Start 2P', 'url(/css/PressStart2P-Regular.ttf)');
+         customFont = new FontFace('Press Start 2P', 'url(css/PressStart2P-Regular.ttf)');
 // Esperar a que se cargue la fuente
         customFont.load().then(function(font) {
             // Establecer la fuente como la fuente actual del contexto del canvas
