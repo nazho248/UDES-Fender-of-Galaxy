@@ -32,7 +32,7 @@ var game = (function () {
         bgMain,
         bgBoss,
         evilSpeed = 2,
-        totalEvils = 7,
+        totalEvils = 2,
         playerLife = 1, // vidas que tiene el bueno al principio
         shotSpeed = 5,
         playerSpeed = 5,
@@ -52,6 +52,7 @@ var game = (function () {
         evilShotImage,
         playerShotImage,
         playerKilledImage,
+        bossDefeated = false,
         evilImages = {
             animation : [],
             killed : new Image()
@@ -72,7 +73,7 @@ var game = (function () {
         },
         nextPlayerShot = 0,
         //todo variable para modificar el delay de balas, para powerup (en ms tal vez) 250
-        playerShotDelay = 250,
+        playerShotDelay = 50,
         now = 0;
 
     //otras variables para con estrellitas y mas uso
@@ -218,8 +219,10 @@ var game = (function () {
         initMenu();
         //fixme aqui se añade el jugador y empieza el juego
         player = new Player(playerLife, 0);
-        evilCounter = 5;
-        createNewEvil();
+        //evilCounter = 5;
+        createNewEvil()
+
+
 
 
         showLifeAndScore();
@@ -316,17 +319,22 @@ var game = (function () {
 
             } else {
                 youLoose = true;
-                if (isBestScore()){
-                    showModalForText().then(function(name) {
-                        saveFinalScore(name);
-                        puttingText = false;
-                    });
-                }
+                SaveHiScore();
 
             }
         };
 
         return player;
+    }
+
+    function SaveHiScore(){
+        if (isBestScore()){
+            showModalForText().then(function(name) {
+                saveFinalScore(name);
+                puttingText = false;
+            });
+        }
+
     }
 
     /******************************* DISPAROS *******************************/
@@ -522,6 +530,7 @@ var game = (function () {
     Evil.prototype.constructor = Evil;
 
     function FinalBoss () {
+        console.log('final boss');
         Object.getPrototypeOf(FinalBoss.prototype).constructor.call(this, finalBossLife, finalBossShots, bossImages);
         this.goDownSpeed = evilSpeed/2;
         this.pointsToKill = 20;
@@ -532,25 +541,47 @@ var game = (function () {
     /******************************* FIN ENEMIGOS *******************************/
 
     function verifyToCreateNewEvil() {
-        if (totalEvils > 0) {
+        if (totalEvils >= 0 && !bossDefeated){
             setTimeout(function() {
                 createNewEvil();
                 evilCounter ++;
-            }, getRandomNumber(3000));
+            }, getRandomNumber(50));
 
         } else {
+            console.log('no quedan enemigos y gano');
             setTimeout(function() {
-                saveFinalScore();
+                playSFXwinLoose();
+                SaveHiScore();
                 congratulations = true;
             }, 2000);
 
         }
     }
 
+    function playSFXwinLoose(){
+        if (youLoose){
+            if (onlyonce>0){
+                musicplaying.pause();
+                gameOver1.play();
+                onlyonce--;
+            }
+        }else{
+            if (onlyonce>0){
+                musicplaying.pause();
+                gameOver2.play();
+                onlyonce--;
+            }
+        }
+
+    }
+
     function createNewEvil() {
-        if (totalEvils != 0) {
+        if (totalEvils >0) {
+            console.log('creando enemigo');
             evil = new Evil(evilLife + evilCounter - 1, evilShots + evilCounter - 1);
         } else {
+            console.log('creando boss')
+            BossDefeated = true;
             evil = new FinalBoss();
         }
     }
@@ -625,11 +656,7 @@ var game = (function () {
 
     function showGameOver() {
 
-        if (onlyonce>0){
-            musicplaying.pause();
-            gameOver1.play();
-            onlyonce--;
-        }
+        playSFXwinLoose();
 
         bufferctx.fillStyle="rgb(255,0,0)";
         bufferctx.font="bold 35px Arial";
@@ -686,6 +713,7 @@ var game = (function () {
         congratulations = false;
         youLoose = false;
         onlyonce = 1;
+        bossDefeated = false;
 
     }
 
@@ -693,10 +721,14 @@ var game = (function () {
     function showCongratulations () {
         bufferctx.fillStyle="rgb(204,50,153)";
         bufferctx.font="bold 22px Arial";
-        bufferctx.fillText("Enhorabuena, te has pasado el juego!", canvas.width / 2 - 200, canvas.height / 2 - 30);
-        bufferctx.fillText("PUNTOS: " + player.score, canvas.width / 2 - 200, canvas.height / 2);
-        bufferctx.fillText("VIDAS: " + player.life + " x 5", canvas.width / 2 - 200, canvas.height / 2 + 30);
-        bufferctx.fillText("PUNTUACION TOTAL: " + getTotalScore(), canvas.width / 2 - 200, canvas.height / 2 + 60);
+        bufferctx.fillText("Enhorabuena, te has pasado el juego!", canvas.width / 2 , canvas.height / 2 - 30);
+        bufferctx.fillText("PUNTOS: " + player.score, canvas.width / 2 , canvas.height / 2);
+        bufferctx.fillText("VIDAS: " + player.life + " x 5", canvas.width / 2 , canvas.height / 2 + 30);
+        bufferctx.fillText("PUNTUACION TOTAL: " + getTotalScore(), canvas.width / 2 , canvas.height / 2 + 60);
+
+        //boton de volver al menu
+        button(canvas.width / 2 - 100, canvas.height / 2 + 100, 200, 50, "0,201,47", "255,201,47", 1, "Volver al Menu", "255,255,255", 20, "Arial", "restart", 13);
+
     }
 
     function getTotalScore() {
@@ -1007,10 +1039,14 @@ var game = (function () {
     /******************************* MEJORES PUNTUACIONES (LOCALSTORAGE) *******************************/
     function saveFinalScore(namesito) {
 
-        //recortar a 10 caracteres
+        //convert namesito a string
+        namesito = namesito.toString();
+
+        //verificar si el string namesito es mas largo que 10 caracteres
         if (namesito.length > 10){
             namesito = namesito.substring(0,10);
         }
+
         //quitar espacios en blanco
         namesito = namesito.replace(/\s/g, '');
 
