@@ -4,11 +4,11 @@ window.oRequestAnimationFrame = undefined;
 window.mozRequestAnimationFrame = undefined;
 window.requestAnimFrame = (function () {
 
-    return  window.requestAnimationFrame        ||
-        window.webkitRequestAnimationFrame  ||
-        window.mozRequestAnimationFrame     ||
-        window.oRequestAnimationFrame       ||
-        window.msRequestAnimationFrame      ||
+    return window.requestAnimationFrame ||
+        window.webkitRequestAnimationFrame ||
+        window.mozRequestAnimationFrame ||
+        window.oRequestAnimationFrame ||
+        window.msRequestAnimationFrame ||
         function ( /* function */ callback, /* DOMElement */ element) {
             window.setTimeout(callback, 1000 / FPS);
         };
@@ -21,45 +21,72 @@ arrayRemove = function (array, from) {
 
 var game = (function () {
 
-    // Variables globales a la aplicacion
+
+    //variables de configuracion del jueguito
+    var totalEvilsInit = 4, //cuantos malos hay que matar para ir al jefe
+        evilSpeedInit = 1, //velocidad de los malos
+        playerLifeInit = 3, // vidas que tiene el bueno al principio
+        callback = 15, //retroceso de las balas al pegarle al enemigo
+        evilShotsInit = 10,   // disparos que tiene el malo al principio
+        evilLifeInit = 3,    // vidas que tiene el malo al principio (se van incrementando)
+        powerUpProbabilityInit = 20, //del 1 al 100, entre mas alto mas probabilidad
+        scoreTonextLevelInit = 10, //cuanto hay que matar para pasar de nivel
+        playerShotDelayInit = 10,
+        probabilidadGenAsteroideInit = 3, //del 1 al 10, entre mas alto mas probabilidad
+        asteroidMaxSpeedInit = 2,
+        asteroidsOnScreenInit = 3, //cuantos asteroides hay en pantalla al principio
+        nivel = 1,
+        shotSpeedInit = 4,
+        finalBossShotsInit = 30,
+        finalBossLifeInit = 15;
+
+
+        // Variables globales a la aplicacion
     var canvas,
         ctx,
         buffer,
+        scoreTonextLevel = scoreTonextLevelInit,
+        GenerateBoss = false,
         bufferctx,
         player,
         evil,
         playerShot,
         bgMain,
+        bgMain,
+        modoInfinito = false, // todo modo infinito
         bgBoss,
-        evilSpeed = 2,
-        totalEvils = 2,
-        playerLife = 1, // vidas que tiene el bueno al principio
-        shotSpeed = 5,
+        evilSpeed = evilSpeedInit,
+        evilsKilled = 0,
+        totalEvils = totalEvilsInit, //cuantos malos hay que matar para ir al jefe
+        playerLife = playerLifeInit, // vidas que tiene el bueno al principio
+        shotSpeed = shotSpeedInit,
         playerSpeed = 5,
         evilCounter = 0,
         youLoose = false,
         congratulations = false,
         minHorizontalOffset = 100,
         maxHorizontalOffset = 400,
-        evilShots = 10,   // disparos que tiene el malo al principio
-        evilLife = 3,    // vidas que tiene el malo al principio (se van incrementando)
+        evilShots = evilShotsInit,   // disparos que tiene el malo al principio
+        evilLife = evilLifeInit,    // vidas que tiene el malo al principio (se van incrementando)
+
         finalBossShots = 30,
-        finalBossLife = 12,
-        totalBestScoresToShow = 6 -1, // las mejores puntuaciones que se mostraran
+        finalBossLife = 15,
+
+        totalBestScoresToShow = 6 - 1, // las mejores puntuaciones que se mostraran
         bgSpeed = 1, // Velocidad de desplazamiento del fondo fixme desplazamiento del fondo
-    playerShotsBuffer = [],
+        playerShotsBuffer = [],
         evilShotsBuffer = [],
         evilShotImage,
         playerShotImage,
         playerKilledImage,
         bossDefeated = false,
         evilImages = {
-            animation : [],
-            killed : new Image()
+            animation: [],
+            killed: new Image()
         },
         bossImages = {
-            animation : [],
-            killed : new Image()
+            animation: [],
+            killed: new Image()
         },
         keyPressed = {},
         keyMap = {
@@ -73,12 +100,12 @@ var game = (function () {
         },
         nextPlayerShot = 0,
         //todo variable para modificar el delay de balas, para powerup (en ms tal vez) 250
-        playerShotDelay = 50,
+        playerShotDelay = playerShotDelayInit,
         now = 0;
 
     //otras variables para con estrellitas y mas uso
     var stars = [],
-        FPS = 500,
+        FPS = 60,
         initiated = true,//al comenzar el juego con el menu
         starinit = 80,//cuantas estrellas se dibujan al principio para que se vean dibujadas en toda la pantalla al comenzar
         colorBottom = "#000043",
@@ -116,12 +143,11 @@ var game = (function () {
         space,
         izq,
         der,
-        musicplaying ,
+        musicplaying,
         audioID,
         changeMusic = false,
         gameBegins = false;
 
-    // Imágenes en la parte inferior izquierda y derecha del menu
 
     //variables del SFX
     var hit1,
@@ -131,7 +157,25 @@ var game = (function () {
         enemyDead,
         asteroidExplosion1,
         asteroidExplosion2,
-        onlyonce = 1;
+        onlyonce = 1,
+        explosion,
+        explosion2,
+        liFeUpPowerUp,
+        machineGunPowerUp;
+
+    //variables Asteroides
+    var cantidadAsteroidesMaxima = asteroidsOnScreenInit,
+        asteroids = [],
+        probabilidadGenAsteroide = probabilidadGenAsteroideInit, //del 1 al 10, entre mas alto mas probabilidad
+        asteroidMaxSpeed = asteroidMaxSpeedInit;
+
+    //variables para el powerup
+    var machineGun,
+        lifeUp,
+        powerUpProbability = powerUpProbabilityInit, //del 1 al 100, entre mas alto mas probabilidad
+        powerUp,
+        powerUpShowing = false,
+        maxNumberOfLifes = 5;
 
 
     function loop() {
@@ -139,7 +183,7 @@ var game = (function () {
         draw();
     }
 
-    function preloadImages () {
+    function preloadImages() {
         for (var i = 1; i <= 8; i++) {
             var evilImage = new Image();
             evilImage.src = 'images/malo' + i + '.png';
@@ -196,10 +240,20 @@ var game = (function () {
         enemyDead = new Audio("sfx/enemy_dead.mp3");
         gameOver1 = new Audio("sfx/game_over1.mp3");
         gameOver2 = new Audio("sfx/game_over2.mp3");
+        asteroidExplosion1 = new Audio("sfx/asteroid_explosion1.mp3");
+        asteroidExplosion2 = new Audio("sfx/asteroid_explosion2.mp3")
+        explosion = new Audio("sfx/explosion2.mp3");
+        explosion2 = new Audio("sfx/explosion1.mp3")
+        liFeUpPowerUp = new Audio("sfx/coin_powerup.mp3");
+        machineGunPowerUp = new Audio("sfx/boing_powerup.mp3");
+
+        //powerup imagen
+        machineGun = new Image();
+        lifeUp = new Image();
+        machineGun.src = "images/machingan.jpg";
+        lifeUp.src = "images/health.png";
 
     }
-
-
 
     function init() {
 
@@ -223,31 +277,83 @@ var game = (function () {
         createNewEvil()
 
 
-
-
-        showLifeAndScore();
-
         addListener(document, 'keydown', keyDown);
         addListener(document, 'keyup', keyUp);
 
 
-        function anim () {
+        function anim() {
             loop();
             requestAnimFrame(anim);
         }
+
         anim();
     }
 
-    function showLifeAndScore () {
-        bufferctx.fillStyle="rgb(255,255,255)";
-        bufferctx.font="bold 16px Arial";
-        bufferctx.fillText("Puntos: " + player.score, canvas.width - 100, 40);
+    function showLifeAndScore() {
+        bufferctx.fillStyle = "rgb(255,255,255)";
+        bufferctx.font = "bold 16px Arial";
+        bufferctx.fillText("Puntos: " + player.score, canvas.width - 130, 40);
         //bufferctx.fillText("Vidas: " + player.life, canvas.width - 100,40);
         //imprimir vidas en imagenes de corazon
         for (var i = 0; i < player.life; i++) {
             var heart = new Image();
             heart.src = 'images/heart.png';
-            bufferctx.drawImage(heart, canvas.width - 100 + (i * 25), 60, 16, 16);
+            bufferctx.drawImage(heart, canvas.width - 130 + (i * 25), 60, 16, 16);
+        }
+        //mostrar una barra de progreso de nivel en la parte superior
+        bufferctx.fillStyle = "rgb(255,255,255)";
+        bufferctx.font = "bold 16px Arial";
+        //si es modoinfinito texto es lvl 1, si es falso mostrar "Jefe Final"
+        let txtlvl = ((modoInfinito) ? ("Nivel: " + nivel) : ("Jefe Final") );
+        bufferctx.fillText(txtlvl, 10, 40);
+        bufferctx.fillStyle = "rgb(255,255,255)";
+        bufferctx.fillRect(10, 50, 200, 20);
+        bufferctx.fillStyle = "rgb(42,105,118)";
+        let progressBar = ( (modoInfinito) ? (200 * ( (player.score - (nivel - 1) * scoreTonextLevel) / scoreTonextLevel)) : (200 * (evilsKilled / (totalEvilsInit+1)) ) );
+        bufferctx.fillRect(10, 50, progressBar, 20);
+        if (modoInfinito) {
+            if (player.score - (nivel - 1) * scoreTonextLevel >= scoreTonextLevel) {
+                nivel = Math.floor(player.score / scoreTonextLevel) + 1;
+                dificultad();
+            }
+        }else if ((evilsKilled+1)%3 === 0){
+            evilsKilled+=1
+            dificultad();
+        }
+
+    }
+
+    //controlador de dificultad
+    function dificultad() {
+//si es modo infinito, aumentar la dificultad nivel, sumando un valor a la variable
+        if (modoInfinito) {
+            shotSpeed += 0.1;
+            evilSpeed += 0.05;
+            evilShots += 5;
+            finalBossLife += 1.5;
+            finalBossShots +=9;
+            scoreTonextLevel = Math.floor(scoreTonextLevel+10 + (nivel * 3.5));
+            evilLife += 1 + Math.floor(0.3*nivel)
+            probabilidadGenAsteroide += (nivel%2 === 0) ? 1 : 0;
+            asteroidMaxSpeed += 0.4;
+            //floor para que sea un entero siempre
+            if (cantidadAsteroidesMaxima < 25){
+                cantidadAsteroidesMaxima = Math.floor(cantidadAsteroidesMaxima + 1.4);
+            }
+            bossDefeated = false;
+            if (nivel % 2 === 0 && !bossDefeated){
+                GenerateBoss = true;
+            }
+
+        }else{
+                evilSpeed += 0.08;
+                evilShots += 5;
+                evilLife += 1 + Math.floor( 0.7*evilsKilled)
+                shotSpeed += 0.1;
+                probabilidadGenAsteroide += 1;
+                asteroidMaxSpeed += 0.7;
+                cantidadAsteroidesMaxima = Math.floor(cantidadAsteroidesMaxima + 1.7);
+
         }
     }
 
@@ -257,8 +363,8 @@ var game = (function () {
 
     function Player(life, score) {
         var settings = {
-            marginBottom : 10,
-            defaultHeight : 66
+            marginBottom: 10,
+            defaultHeight: 66
         };
         player = new Image();
         player.src = 'images/bueno.png';
@@ -269,20 +375,22 @@ var game = (function () {
         player.dead = false;
         player.speed = playerSpeed;
 
+
         var shoot = function () {
             if (nextPlayerShot < now || now == 0) {
-                playerShot = new PlayerShot(player.posX + (player.width / 2) - 5 , player.posY);
+                playerShot = new PlayerShot(player.posX + (player.width / 2) - 5, player.posY);
                 playerShot.add();
                 now += playerShotDelay;
                 nextPlayerShot = now + playerShotDelay;
-                if (playerShotDelay >150){
-                    shoot1.play();}
+                if (playerShotDelay > 150) {
+                    shoot1.play();
+                }
             } else {
                 now = new Date().getTime();
             }
         };
 
-        player.doAnything = function() {
+        player.doAnything = function () {
 
 
             if (player.dead)
@@ -293,26 +401,28 @@ var game = (function () {
                 player.posX += player.speed;
             if (keyPressed.fire)
                 shoot();
-            if(!puttingText)
-                if(keyPressed.R && youLoose)
+            if (!puttingText)
+                if (keyPressed.R && youLoose)
                     resetGame();
             if (keyPressed.up)
+                //todo controles arriba y abajo
                 console.log("up");
-                player.posY -= player.speed;
+            //player.posY -= player.speed;
             if (keyPressed.down)
                 console.log("down")
-                player.posY += player.speed;
+            //player.posY += player.speed;
             if (keyPressed.suicide && !puttingText)
                 player.killPlayer()
         };
 
-        player.killPlayer = function() {
+        player.killPlayer = function () {
             if (this.life > 0) {
                 this.dead = true;
                 evilShotsBuffer.splice(0, evilShotsBuffer.length);
                 playerShotsBuffer.splice(0, playerShotsBuffer.length);
                 this.src = playerKilledImage.src;
                 createNewEvil();
+                explosion.play();
                 setTimeout(function () {
                     player = new Player(player.life - 1, player.score);
                 }, 500);
@@ -327,9 +437,9 @@ var game = (function () {
         return player;
     }
 
-    function SaveHiScore(){
-        if (isBestScore()){
-            showModalForText().then(function(name) {
+    function SaveHiScore() {
+        if (isBestScore()) {
+            showModalForText().then(function (name) {
                 saveFinalScore(name);
                 puttingText = false;
             });
@@ -338,7 +448,7 @@ var game = (function () {
     }
 
     /******************************* DISPAROS *******************************/
-    function Shot( x, y, array, img) {
+    function Shot(x, y, array, img) {
         this.posX = x;
         this.posY = y;
         this.image = img;
@@ -352,20 +462,33 @@ var game = (function () {
         };
     }
 
-    function PlayerShot (x, y) {
+    function PlayerShot(x, y) {
         Object.getPrototypeOf(PlayerShot.prototype).constructor.call(this, x, y, playerShotsBuffer, playerShotImage);
-        this.isHittingEvil = function() {
-            return (!evil.dead && this.posX >= evil.posX && this.posX <= (evil.posX + evil.image.width) &&
-                this.posY >= evil.posY && this.posY <= (evil.posY + evil.image.height));
+        this.isHittingEvil = function () {
+            return (!evil.dead && this.posX >= evil.posX && this.posX <= (evil.posX + evil.width) &&
+                this.posY >= evil.posY && this.posY <= (evil.posY + evil.height));
         };
+
+
+        this.isHittingAsteroid = function (asteroid) {
+            const gap = 3; // Tamaño del gap que deseas añadir
+            const sizebullet = this.image.width;
+            return (
+                this.posX >= asteroid.posX - sizebullet / 2 - gap &&
+                this.posX <= (asteroid.posX + asteroid.width) + sizebullet / 2 + gap &&
+                this.posY >= asteroid.posY - sizebullet / 2 - gap &&
+                this.posY <= (asteroid.posY + asteroid.height) + sizebullet / 2 + gap
+            );
+        }
+
     }
 
     PlayerShot.prototype = Object.create(Shot.prototype);
     PlayerShot.prototype.constructor = PlayerShot;
 
-    function EvilShot (x, y) {
+    function EvilShot(x, y) {
         Object.getPrototypeOf(EvilShot.prototype).constructor.call(this, x, y, evilShotsBuffer, evilShotImage);
-        this.isHittingPlayer = function() {
+        this.isHittingPlayer = function () {
             return (this.posX >= player.posX && this.posX <= (player.posX + player.width)
                 && this.posY >= player.posY && this.posY <= (player.posY + player.height));
         };
@@ -373,11 +496,12 @@ var game = (function () {
 
     EvilShot.prototype = Object.create(Shot.prototype);
     EvilShot.prototype.constructor = EvilShot;
+
     /******************************* FIN DISPAROS ********************************/
 
 
     /******************************* ENEMIGOS *******************************/
-    function Enemy(life, shots, enemyImages) {
+    function Enemy(life, shots, enemyImages, finalBoss) {
         this.image = enemyImages.animation[0];
         this.imageNumber = 1;
         this.animation = 0;
@@ -388,8 +512,15 @@ var game = (function () {
         this.shots = shots ? shots : evilShots;
         this.dead = false;
         this.lifeBarWidth = 1;
-        this.NumberLifes =0;
+        this.NumberLifes = 0;
         this.firstShot = true;
+        this.height = this.image.height;
+        this.width = this.image.width;
+        this.firstMovement = true;
+        //if finalBoss is undefined, it will be false
+        this.finalBoss = finalBoss
+        this.goingDown = true;
+        this.verticalSpeed = 0.75
 
 
         var desplazamientoHorizontal = minHorizontalOffset +
@@ -397,87 +528,118 @@ var game = (function () {
         this.minX = getRandomNumber(canvas.width - desplazamientoHorizontal);
         this.maxX = this.minX + desplazamientoHorizontal - 40;
         this.direction = 'D';
+        if (finalBoss) {
+            //hacerlo mas grande
+            this.width = this.width * 3;
+            this.height = this.height * 3;
+            //pos x mas abajo para que se vea
+            this.posY = 0;
+        }
 
 
-        this.kill = function() {
+        this.kill = function () {
+
+
             this.dead = true;
             //globales para imprimir texto puntuación
-            posXTexto = this.posX ;
+            posXTexto = this.posX;
             posYTexto = this.posY;
-            if (this.isOutOfScreen() || youLoose){
+            if (this.isOutOfScreen() || youLoose) {
                 printTexto = false;
-            }else{
+            } else {
                 printTexto = true;
             }
-            totalEvils --;
             this.image = enemyImages.killed;
             verifyToCreateNewEvil();
         };
 
         this.update = function () {
-            if (this.firstShot){
+
+            console.log(GenerateBoss)
+            let minHeight = canvas.height - player.height - 50 - this.height;
+            let maxHeight = 200;
+
+            if (this.finalBoss || this.life >= 7) {
+
+                if (this.posY <= maxHeight) {
+                    this.verticalSpeed = Math.abs(this.verticalSpeed);
+                } else if (this.posY >= minHeight) {
+                    this.verticalSpeed = -Math.abs(this.verticalSpeed);
+                }
+                this.posY += this.verticalSpeed;
+
+            } else {
+                this.posY += this.goDownSpeed;
+            }
+
+
+            if (this.firstShot) {
                 this.firstShot = false;
                 this.NumberLifes = this.life;
             }
-            this.posY += this.goDownSpeed;
 
             // Calcular la longitud de la barra de vida en función de la vida actual
-            this.lifeBarWidth = this.life/this.NumberLifes;
+            this.lifeBarWidth = this.life / this.NumberLifes;
 
 
             // Dibujar la barra de vida verde
-            if (this.lifeBarWidth !== 1){
+            if (this.lifeBarWidth !== 1) {
                 bufferctx.fillStyle = 'green';
-                bufferctx.fillRect(this.posX, this.posY - 10, this.image.width * this.lifeBarWidth, 5);
+                bufferctx.fillRect(this.posX, this.posY - 10, this.width * this.lifeBarWidth, 5);
 
                 // Dibujar la barra de vida roja
                 bufferctx.fillStyle = 'red';
-                bufferctx.fillRect(this.posX + (this.image.width * this.lifeBarWidth), this.posY - 10, this.image.width * (1 - this.lifeBarWidth), 5);
+                bufferctx.fillRect(this.posX + (this.width * this.lifeBarWidth), this.posY - 10, this.width * (1 - this.lifeBarWidth), 5);
             }
 
-            if (evilhit){
-                ciclosHit+=1;
+            //cuando se le pega al enemigo
+            if (evilhit) {
+                ciclosHit += 1;
                 bufferctx.globalCompositeOperation = "exclusion";
-                bufferctx.drawImage(this.image, this.posX, this.posY);
+                bufferctx.drawImage(this.image, this.posX, this.posY, this.width, this.height);
                 bufferctx.globalCompositeOperation = "source-over";
-                if (ciclosHit>=15){
+                if (ciclosHit >= 15) {
                     evilhit = false;
                     ciclosHit = 0;
                 }
-            }else{
-                   bufferctx.drawImage(this.image, this.posX, this.posY);
-
+            } else {
+                bufferctx.drawImage(this.image, this.posX, this.posY, this.width, this.height);
             }
 
             // Dibujar al enemigo
-            //todo esto es para matarlo rapidito
-            //mover el enemigo hacia la posicion del jugador
-            if (this.posX < player.posX) {
-                this.posX += this.speed;
 
+            if (this.firstMovement) {
+                if (this.posX < player.posX) {
+                    this.posX += this.speed;
+                } else {
+                    this.posX -= this.speed;
+                }
+
+                // Verificar si ya llegó al jugador
+                if (Math.abs(this.posX - player.posX) < 10) {
+                    this.firstMovement = false;
+                }
             } else {
-                this.posX -= this.speed;
+                // Movimiento errático
+                if (this.direction === 'D') {
+                    if (this.posX <= this.maxX) {
+                        this.posX += this.speed;
+                    } else {
+                        this.direction = 'I';
+                        this.posX -= this.speed;
+                    }
+                } else {
+                    if (this.posX >= this.minX) {
+                        this.posX -= this.speed;
+                    } else {
+                        this.direction = 'D';
+                        this.posX += this.speed;
+                    }
+                }
             }
 
 
             // Mover al enemigo de izquierda a derecha
-            /*
-                        if (this.direction === 'D') {
-                            if (this.posX <= this.maxX) {
-                                this.posX += this.speed;
-                            } else {
-                                this.direction = 'I';
-                                this.posX -= this.speed;
-                            }
-                        } else {
-                            if (this.posX >= this.minX) {
-                                this.posX -= this.speed;
-                            } else {
-                                this.direction = 'D';
-                                this.posX += this.speed;
-                            }
-                        }
-            */
 
 
             // Actualizar la animación del enemigo
@@ -491,24 +653,24 @@ var game = (function () {
                 this.image = enemyImages.animation[this.imageNumber - 1];
             }
         }
-;
+        ;
 
-        this.isOutOfScreen = function() {
+        this.isOutOfScreen = function () {
             return this.posY > (canvas.height + 15);
         };
 
         function shoot() {
-            //fixme evil.shots>0 modificado para pruebas
-            if (evil.shots > 20 && !evil.dead) {
-                var disparo = new EvilShot(evil.posX + (evil.image.width / 2) - 5 , evil.posY + evil.image.height);
+            if (evil.shots > 0 && !evil.dead) {
+                var disparo = new EvilShot(evil.posX + (evil.width / 2) - 5, evil.posY + evil.height);
                 disparo.add();
-                evil.shots --;
-                setTimeout(function() {
+                evil.shots--;
+                setTimeout(function () {
                     shoot();
                 }, getRandomNumber(3000));
             }
         }
-        setTimeout(function() {
+
+        setTimeout(function () {
             shoot();
         }, 1000 + getRandomNumber(2500));
 
@@ -518,55 +680,252 @@ var game = (function () {
 
     }
 
-    /*fin enemigos*/
 
-    function Evil (vidas, disparos) {
+    function Evil(vidas, disparos) {
         Object.getPrototypeOf(Evil.prototype).constructor.call(this, vidas, disparos, evilImages);
         this.goDownSpeed = evilSpeed;
-        this.pointsToKill = 5 + evilCounter;
+        if(modoInfinito){
+            //ganar puntos de acuerdo al nivel y la cantidad de enemigos matados
+            this.pointsToKill = 5 + evilsKilled+ vidas*nivel -3;
+        }else{
+            this.pointsToKill = 5 + evilsKilled+ vidas -3;
+        }
     }
 
     Evil.prototype = Object.create(Enemy.prototype);
     Evil.prototype.constructor = Evil;
 
-    function FinalBoss () {
-        console.log('final boss');
-        Object.getPrototypeOf(FinalBoss.prototype).constructor.call(this, finalBossLife, finalBossShots, bossImages);
-        this.goDownSpeed = evilSpeed/2;
+    function FinalBoss() {
+        Object.getPrototypeOf(FinalBoss.prototype).constructor.call(this, finalBossLife, finalBossShots, bossImages, true);
+        this.goDownSpeed = evilSpeed / 2;
         this.pointsToKill = 20;
     }
 
     FinalBoss.prototype = Object.create(Enemy.prototype);
     FinalBoss.prototype.constructor = FinalBoss;
-    /******************************* FIN ENEMIGOS *******************************/
 
     function verifyToCreateNewEvil() {
-        if (totalEvils >= 0 && !bossDefeated){
-            setTimeout(function() {
+        if (totalEvils >= 0 && !bossDefeated || modoInfinito || GenerateBoss) {
+            setTimeout(function () {
                 createNewEvil();
-                evilCounter ++;
+                evilCounter++;
             }, getRandomNumber(50));
 
         } else {
-            console.log('no quedan enemigos y gano');
-            setTimeout(function() {
-                playSFXwinLoose();
-                SaveHiScore();
-                congratulations = true;
-            }, 2000);
+            if (!modoInfinito){
+                setTimeout(function () {
+                    playSFXwinLoose();
+                    SaveHiScore();
+                    congratulations = true;
+                }, 2000);
+            }
+
 
         }
     }
 
-    function playSFXwinLoose(){
-        if (youLoose){
-            if (onlyonce>0){
+    /******************************* FIN ENEMIGOS *******************************/
+
+    /* ******************************* POWER UPS ******************************* */
+
+    function PowerUp(posX, posY, type) {
+        this.image = new Image();
+        this.type = type;
+        this.destroyed = false;
+        this.posX = posX;
+        this.posY = posY;
+        this.speed = getRandomNumber(5) + 3;
+        this.width = 40;
+        this.height = 40;
+        this.sfx;
+
+
+        //type 1 = rapid fire
+        //type 2 = extra life
+        if (type === 1) {
+            this.image = machineGun;
+            this.sfx = machineGunPowerUp;
+        } else if (type === 2) {
+            this.image = lifeUp;
+            this.sfx = liFeUpPowerUp;
+        }
+
+
+        this.update = function () {
+            this.posY += this.speed;
+
+            if (!this.destroyed) {
+                if (isPowerUpCollidingPlayer(this)) {
+                    powerUpShowing = false;
+                    this.destroyed = true;
+                    this.sfx.play()
+
+
+                    // Realizar acción correspondiente según el tipo de power-up recolectado
+                    if (type === 1) {
+                        playerShotDelay = 100;
+                        setTimeout(function () {
+                            playerShotDelay = playerShotDelayInit;
+                        }, 5000); // Volver al estado normal después de 5 segundos
+                    } else if (type === 2) {
+                        if (maxNumberOfLifes > player.life) {
+                            player.life++;
+                        }
+                    }
+                }
+            }
+            //verifico si power up esta fuera de pantalla
+            if (this.isOutOfScreen()) {
+                powerUpShowing = false;
+            }
+
+            bufferctx.drawImage(this.image, this.posX, this.posY, this.width, this.height);
+        };
+
+        //funcion verificar si power up esta fuera de pantalla
+        this.isOutOfScreen = function () {
+            return this.posY > (canvas.height + 15);
+        }
+
+        function isPowerUpCollidingPlayer(powerUp) {
+            return (((powerUp.posY + powerUp.height) >= player.posY) &&
+                (powerUp.posY <= (player.posY + player.height)) &&
+                ((powerUp.posX + powerUp.width) >= player.posX) &&
+                (powerUp.posX <= (player.posX + player.width)));
+        }
+
+        this.toString = function () {
+            return 'PowerUp con tipo:' + this.type + ' posX:' + this
+        }
+    }
+
+    //generar power up segun probabilidad definida
+    function generatePowerUp(posX, posY) {
+        var probabilidad = getRandomNumber(100);
+        if (probabilidad <= powerUpProbability && !PowerUp.destroyed) {
+            console.log("Generando Power Up :)")
+            if (!powerUpShowing) {
+                powerUpShowing = true;
+                powerUp = new PowerUp(posX, posY, getRandomNumber(2) + 1);
+            }
+
+        }
+    }
+
+    /* ******************************* FIN POWER UPS ******************************* */
+
+    /****************************** ASTEROIDES   *******************************************/
+    function Asteroid() {
+        this.image = new Image();
+        this.image.src = 'images/asteroid.png'; // Ruta a la imagen del asteroide
+        this.posX = getRandomNumber(canvas.width - this.image.width); // Posición X aleatoria
+        this.posY = -50; // Empiezan en la parte superior de la pantalla
+        this.speed = getRandomNumber(5) + 1.5; // Velocidad aleatoria
+        this.destroyed = false; // Flag para indicar si el asteroide fue destruido o no
+        //numero aleatorio entre 40 y 100
+        this.randomNumber = getRandomNumber(60) + 40;
+        this.height = this.randomNumber
+        this.width = this.randomNumber
+        this.textoPuntuacion = false;
+        this.transparencia = 1;
+        this.score = getRandomNumber(3) + 1 //hasta 4 de puntaje
+        this.rotation = getRandomNumber(360);
+        this.posXTexto = 0;
+        this.posYTexto = 0;
+
+        if (modoInfinito){
+            this.score += Math.floor(nivel*0.6);
+        }
+
+
+        this.update = function () {
+            this.posY += this.speed; // Actualizar posición
+
+            // Dibujar asteroide con su height y width e irlo rotando en su propio eje
+            bufferctx.save();
+            bufferctx.translate(this.posX + this.width / 2, this.posY + this.height / 2);
+            bufferctx.rotate(this.rotation * Math.PI / 180);
+            bufferctx.drawImage(this.image, -this.width / 2, -this.height / 2, this.width, this.height);
+            bufferctx.restore();
+            this.rotation += 1;
+
+
+            if (!this.destroyed) {
+                if (!this.destroyed && isAsteroidCollidingPlayer(this)) {
+                    // Realizar cualquier acción adicional, como disminuir la vida del jugador
+                    this.destroyed = true; // Marcar asteroide como destruido
+                    //quitarle vida al jugador
+                    player.killPlayer();
+                }
+            }
+
+            if (this.textoPuntuacion) {
+                //mover texto hacia arriba y desaparecer
+                this.posY -= 1;
+                this.transparencia -= 0.01;
+                bufferctx.globalAlpha = this.transparencia;
+                bufferctx.font = "20px Arial";
+                bufferctx.fillStyle = "red";
+                bufferctx.fillText("+" + this.score, this.posXTexto, this.posYTexto);
+                if (this.transparencia <= 0.05) {
+                    this.textoPuntuacion = false;
+                }
+            }
+            bufferctx.globalAlpha = 1;
+        };
+
+        function isAsteroidCollidingPlayer(asteroid) {
+            return (((asteroid.posY + asteroid.height) >= player.posY) &&
+                (asteroid.posY <= (player.posY + player.height)) &&
+                ((asteroid.posX + asteroid.width) >= player.posX) &&
+                (asteroid.posX <= (player.posX + player.width)));
+        }
+
+        this.toString = function () {
+            return 'Asteroid con posX:' + this.posX + ' posY: ' + this.posY;
+        }
+    }
+
+
+    function createAsteroid() {
+        // Crear un nuevo asteroide y agregarlo al array
+
+        // obtener un numero aleatorio entre 0 y 1 si es mayor a 0.5 crear otro asteroide
+        if (getRandomNumber(11) < probabilidadGenAsteroide) {
+            if (cantidadAsteroidesMaxima > asteroids.length) {
+                asteroids.push(new Asteroid());
+            }
+        }
+        // Esperar un tiempo aleatorio antes de crear el siguiente asteroide
+        setTimeout(createAsteroid, getRandomNumber(5000));
+    }
+
+    function updateAsteroids() {
+        //si ya se inicializo
+        if (asteroids.length > 0) {
+            // Eliminar los asteroides que ya no estén en la pantalla
+            for (let i = 0; i < asteroids.length; i++) {
+                if (asteroids[i].destroyed && !asteroids[i].textoPuntuacion || asteroids[i].posY > canvas.height) {
+                    asteroids.splice(i, 1);
+                    i--;
+                } else {
+                    asteroids[i].update();
+                }
+            }
+        }
+    }
+
+    /****************************** FIN ASTEROIDES   *******************************************/
+
+    function playSFXwinLoose() {
+        if (youLoose) {
+            if (onlyonce > 0) {
                 musicplaying.pause();
                 gameOver1.play();
                 onlyonce--;
             }
-        }else{
-            if (onlyonce>0){
+        } else {
+            if (onlyonce > 0) {
                 musicplaying.pause();
                 gameOver2.play();
                 onlyonce--;
@@ -576,18 +935,18 @@ var game = (function () {
     }
 
     function createNewEvil() {
-        if (totalEvils >0) {
-            console.log('creando enemigo');
-            evil = new Evil(evilLife + evilCounter - 1, evilShots + evilCounter - 1);
+        // la primera condicion es modo normal, la segunda es modo infinito
+        if (totalEvils > 0 && !bossDefeated && !modoInfinito || modoInfinito && !GenerateBoss) {
+            evil = new Evil(evilLife, evilShots, null, false);
         } else {
-            console.log('creando boss')
-            BossDefeated = true;
+            GenerateBoss = false;
+            bossDefeated = true;
             evil = new FinalBoss();
         }
     }
 
     function isEvilHittingPlayer() {
-        return ( ( (evil.posY + evil.image.height) > player.posY && (player.posY + player.height) >= evil.posY ) &&
+        return (((evil.posY + evil.image.height) > player.posY && (player.posY + player.height) >= evil.posY) &&
             ((player.posX >= evil.posX && player.posX <= (evil.posX + evil.image.width)) ||
                 (player.posX + player.width >= evil.posX && (player.posX + player.width) <= (evil.posX + evil.image.width))));
     }
@@ -598,16 +957,53 @@ var game = (function () {
             if (evil.life > 1) {
                 evilhit = true
                 evil.life--;
+                //moverlo hacia arriba
+                evil.posY -= callback;
                 hit1.play();
             } else {
                 evil.kill();
+                //cuando se muere se disminuye el contador de enemigos
+                totalEvils--;
+                evilsKilled++;
                 scoreObtenido = evil.pointsToKill;
                 player.score += evil.pointsToKill;
-                enemyDead.play();
+                generatePowerUp(evil.posX, evil.posY);
+                console.log(this.finalBoss)
+                if (this.finalBoss){
+                    console.log("sonido malote")
+                    explosion2.play();
+                }else{
+                    enemyDead.play();
+
+                }
             }
             shot.deleteShot(parseInt(shot.identifier));
             return false;
         }
+        //verificar si la bala golpea a un asteroide
+        for (let i = 0; i < asteroids.length; i++) {
+            if (!asteroids[i].destroyed && shot.isHittingAsteroid(asteroids[i])) {
+                asteroids[i].destroyed = true;
+                asteroids[i].posXTexto = asteroids[i].posX;
+                asteroids[i].posYTexto = asteroids[i].posY;
+                asteroids[i].textoPuntuacion = true;
+                player.score += asteroids[i].score;
+                //volver el asteroide sin collision
+
+                //imagen vacia para que no se vea el asteroide
+                asteroids[i].image = new Image();
+                generatePowerUp(asteroids[i].posX, asteroids[i].posY);
+                shot.deleteShot(parseInt(shot.identifier));
+                if (ciclos % 2 === 0) {
+                    asteroidExplosion1.play();
+                } else {
+                    asteroidExplosion2.play();
+                }
+                return false;
+            }
+        }
+
+
         return true;
     }
 
@@ -627,7 +1023,7 @@ var game = (function () {
 
     function keyDown(e) {
 
-        if (puttingText){
+        if (puttingText) {
             return;
         }
         var key = (window.event ? e.keyCode : e.which);
@@ -657,22 +1053,21 @@ var game = (function () {
     function showGameOver() {
 
         playSFXwinLoose();
-
-        bufferctx.fillStyle="rgb(255,0,0)";
-        bufferctx.font="bold 35px Arial";
-        bufferctx.fillText("GAME OVER", canvas.width / 2 , canvas.height / 2);
-        bufferctx.fillText("PUNTUACION TOTAL: " + getTotalScore(), canvas.width / 2 , canvas.height / 2 + 60);
+        //reset align
+        bufferctx.textAlign = "center";
+        bufferctx.fillStyle = "rgb(255,0,0)";
+        bufferctx.font = "bold 35px Arial";
+        bufferctx.fillText("GAME OVER", canvas.width / 2, canvas.height / 2);
+        bufferctx.fillText("PUNTUACION TOTAL: " + getTotalScore(), canvas.width / 2, canvas.height / 2 + 60);
         //texto de presiona R para reiniciar pequeño
-        bufferctx.fillStyle="rgb(255,255,255)";
-        bufferctx.font="bold 20px Arial";
-        bufferctx.fillText("Presiona R para reiniciar", canvas.width / 2 , canvas.height / 2 + 100);
+        bufferctx.fillStyle = "rgb(255,255,255)";
+        bufferctx.font = "bold 20px Arial";
+        bufferctx.fillText("Presiona R para reiniciar", canvas.width / 2, canvas.height / 2 + 100);
         //boton de restart debajo de PUNTUAION TOTAL con el texto "REINICIAR" y centrado
         button(canvas.width / 2 - 100, canvas.height / 2 + 130, 200, 50, "255,0,0", "255,0,0", 1, "Volver al Menu", "255,255,255", 20, "Arial", "restart", 13);
-
-
     }
 
-    function button(posX, posY, width, height, hexColor, hexColorToggle, transparency, text, textcolor, textsize, textfont, action, key){
+    function button(posX, posY, width, height, hexColor, hexColorToggle, transparency, text, textcolor, textsize, textfont, action, key) {
         // color con transparencia
         bufferctx.fillStyle = "rgba(" + hexColor + "," + transparency + ")";
         // dibujar el rectángulo
@@ -680,9 +1075,9 @@ var game = (function () {
         //texto centrado
         bufferctx.fillStyle = "rgb(" + textcolor + ")";
         bufferctx.font = textsize + "px " + textfont;
-        bufferctx.fillText(text, posX + width / 2  , posY + height / 2 + 5);
+        bufferctx.fillText(text, posX + width / 2, posY + height / 2 + 5);
 
-        canvas.addEventListener("click", function(event) {
+        canvas.addEventListener("click", function (event) {
             // verificar si las coordenadas del clic están dentro del área del botón
             if (event.clientX >= posX && event.clientX <= posX + width &&
                 event.clientY >= posY && event.clientY <= posY + height && !puttingText) {
@@ -701,30 +1096,52 @@ var game = (function () {
         });
     }
 
-    function resetGame(){
+    function resetGame() {
         //reiniciar parametros del juego
-        player.life = 3;
-        player.score = 0;
-        evilCounter = 0;
-        evilLife = 0;
-        evilShots = 1;
-        totalEvils = 10;
+        player.life = playerLifeInit
+        player.score = 0
+        evilCounter = 0
+        nivel = 1
+        evilLife = evilLifeInit;
+        evilShots = evilShotsInit;
+        totalEvils = totalEvilsInit;
+        scoreTonextLevel = scoreTonextLevelInit;
+        evilSpeed = evilSpeedInit;
+        playerShotDelay = playerShotDelayInit;
+        //reseteo asteroides
+        probabilidadGenAsteroide = probabilidadGenAsteroideInit;
+        cantidadAsteroidesMaxima = asteroidsOnScreenInit;
+        asteroidMaxSpeed = asteroidMaxSpeedInit;
+        shotSpeed = shotSpeedInit
+        finalBossShots = finalBossShotsInit
+        finalBossLife = finalBossLifeInit
+        GenerateBoss = false
+        printTexto = false
+        evilCounter = 0
+        evilsKilled = 0
+
+
         evilhit = false;
         congratulations = false;
+        modoInfinito = false;
         youLoose = false;
-        onlyonce = 1;
-        bossDefeated = false;
-
+        onlyonce = 1,
+        bossDefeated = false,
+        asteroids = []
+        evilShotsBuffer = []
+        playerShotsBuffer = []
+        createNewEvil()
     }
 
 
-    function showCongratulations () {
-        bufferctx.fillStyle="rgb(204,50,153)";
-        bufferctx.font="bold 22px Arial";
-        bufferctx.fillText("Enhorabuena, te has pasado el juego!", canvas.width / 2 , canvas.height / 2 - 30);
-        bufferctx.fillText("PUNTOS: " + player.score, canvas.width / 2 , canvas.height / 2);
-        bufferctx.fillText("VIDAS: " + player.life + " x 5", canvas.width / 2 , canvas.height / 2 + 30);
-        bufferctx.fillText("PUNTUACION TOTAL: " + getTotalScore(), canvas.width / 2 , canvas.height / 2 + 60);
+    function showCongratulations() {
+        bufferctx.textAlign = "center";
+        bufferctx.fillStyle = "rgb(204,50,153)";
+        bufferctx.font = "bold 22px Arial";
+        bufferctx.fillText("Enhorabuena, te has pasado el juego!", canvas.width / 2, canvas.height / 2 - 30);
+        bufferctx.fillText("PUNTOS: " + player.score, canvas.width / 2, canvas.height / 2);
+        bufferctx.fillText("VIDAS: " + player.life + " x 5", canvas.width / 2, canvas.height / 2 + 30);
+        bufferctx.fillText("PUNTUACION TOTAL: " + getTotalScore(), canvas.width / 2, canvas.height / 2 + 60);
 
         //boton de volver al menu
         button(canvas.width / 2 - 100, canvas.height / 2 + 100, 200, 50, "0,201,47", "255,201,47", 1, "Volver al Menu", "255,255,255", 20, "Arial", "restart", 13);
@@ -738,20 +1155,26 @@ var game = (function () {
 
     function update() {
 
+        buffer.width = canvas.width;
+        buffer.height = canvas.height;
+
         drawBackground();
         playerAction();
+        //update canvas size
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
 
 
-        if (changeMusic){
+        if (changeMusic) {
             changeMusic = false
             musicplaying.currentTime = 0;
             musicplaying.pause();
             musicplaying = document.getElementById(audioID);
-            musicplaying.loop=true;
+            musicplaying.loop = true;
             musicplaying.play();
         }
 
-        if (resetedGame ) {
+        if (resetedGame) {
             resetGame();
             resetedGame = false;
         }
@@ -759,38 +1182,48 @@ var game = (function () {
         if (ShowMenu) {
             ciclos++;
             drawMenu();
-        }else{
-            if (gameBegins){
+        } else {
+            if (gameBegins) {
                 gameBegins = false;
                 audioID = "level1"
                 changeMusic = true;
             }
 
+
             if (youLoose) {
                 showGameOver();
-            }else if(congratulations){
+            } else if (congratulations) {
                 showCongratulations();
-            }else{
-                if (printTexto){
-                    bufferctx.fillStyle="rgba(255,255,255,"+transparenciaTexto+")";
-                    bufferctx.font="bold 15px Arial";
+            } else {
+                if (printTexto) {
+                    bufferctx.fillStyle = "rgba(255,255,255," + transparenciaTexto + ")";
+                    bufferctx.font = "bold 15px Arial";
 
                     //mover texto hacia arriba
                     posYTexto -= 1;
                     transparenciaTexto -= 0.02;
-                    bufferctx.fillText("+"+ scoreObtenido, posXTexto, posYTexto);
-                    if (transparenciaTexto <= 0){
+                    bufferctx.fillText("+" + scoreObtenido, posXTexto, posYTexto);
+                    if (transparenciaTexto <= 0) {
                         printTexto = false;
                         transparenciaTexto = 1;
                     }
                 }
 
 
-
+                //dibujar el jugador y el enemigo
                 bufferctx.drawImage(player, player.posX, player.posY);
-                bufferctx.drawImage(evil.image, evil.posX, evil.posY);
+                bufferctx.drawImage(evil.image, evil.posX, evil.posY, evil.width, evil.height);
+
+                createAsteroid();
+                updateAsteroids();
+
 
                 updateEvil();
+
+                //si el powerup esta activo, dibujarlo
+                if (powerUp != null && !powerUp.destroyed) {
+                    powerUp.update();
+                }
 
                 for (var j = 0; j < playerShotsBuffer.length; j++) {
                     var disparoBueno = playerShotsBuffer[j];
@@ -799,7 +1232,7 @@ var game = (function () {
 
                 if (isEvilHittingPlayer()) {
                     player.killPlayer();
-                    if (youLoose){
+                    if (youLoose) {
                         evil.kill();
                     }
                 } else {
@@ -837,7 +1270,12 @@ var game = (function () {
             if (!evilShot.isHittingPlayer()) {
                 if (evilShot.posY <= canvas.height) {
                     evilShot.posY += evilShot.speed;
+
+                    bufferctx.shadowColor = 'red';
+                    bufferctx.shadowBlur = 10;
                     bufferctx.drawImage(evilShot.image, evilShot.posX, evilShot.posY);
+                    bufferctx.shadowColor = 'transparent';
+                    bufferctx.shadowBlur = 0;
                 } else {
                     evilShot.deleteShot(parseInt(evilShot.identifier));
                 }
@@ -849,10 +1287,7 @@ var game = (function () {
 
 
     function drawBackground() {
-        var canvas = document.getElementById('canvas');
-        var ctx = canvas.getContext('2d');
-
-        if (GameInitiatedStars){
+        if (GameInitiatedStars) {
             //solo debe hacerse una vez
             createStars();
             GameInitiatedStars = false;
@@ -869,9 +1304,9 @@ var game = (function () {
 
 
         this.x = Math.random() * canvas.width;
-        if (initiated){
-            this.y = canvas.height*Math.random();
-        }else{
+        if (initiated) {
+            this.y = canvas.height * Math.random();
+        } else {
             this.y = -10;
         }
 
@@ -893,7 +1328,7 @@ var game = (function () {
     function createStars() {
         for (var i = 0; i < 100; i++) {
             stars[i] = new Star();
-            if (i>=starinit){
+            if (i >= starinit) {
                 initiated = false;
             }
         }
@@ -906,9 +1341,9 @@ var game = (function () {
             // definimos el estilo de sombra para cada estrella, solo en las estrellas
             bufferctx.shadowColor = '#ffffff';
             //generar random para generar blur o no
-            if (stars[i].blur < 0.5){
+            if (stars[i].blur < 0.5) {
                 bufferctx.shadowBlur = 0;
-            }else{
+            } else {
                 bufferctx.shadowBlur = 25;
             }
             //quitar blur
@@ -931,12 +1366,12 @@ var game = (function () {
         }
     }
 
-    function spaceBackground(){
-        //funcion para dibujar el fondo del espacio
+    function spaceBackground() {
+        //funcion para dibujar el fondo del espacio en todo el canvas
         var grd = ctx.createLinearGradient(0, 0, 0, canvas.height);
 
         //ir oscureciendo el fondo del espacio para dar sensacion de profundidad
-        if (GameInitiated){
+        if (GameInitiated) {
             darkenColor();
         }
         grd.addColorStop(0.5, colorBottom);
@@ -947,14 +1382,14 @@ var game = (function () {
         bufferctx.fillRect(0, 0, canvas.width, canvas.height);
     }
 
-    function darkenColor(){
-        if (ciclos >= ciclosMax){
+    function darkenColor() {
+        if (ciclos >= ciclosMax) {
             //limitarlo a 16 para que no de error y de error :(
-            if (parseInt(colorBottom.substring(5,7),16)>16 ){
-                colorBottom = "#0000"+(parseInt(colorBottom.substring(5,7),16)-1).toString(16);
+            if (parseInt(colorBottom.substring(5, 7), 16) > 16) {
+                colorBottom = "#0000" + (parseInt(colorBottom.substring(5, 7), 16) - 1).toString(16);
             }
-            if (parseInt(colorTop.substring(5,7),16)>16 ){
-                colorTop = "#3f10"+(parseInt(colorTop.substring(5,7),16)-1).toString(16);
+            if (parseInt(colorTop.substring(5, 7), 16) > 16) {
+                colorTop = "#3f10" + (parseInt(colorTop.substring(5, 7), 16) - 1).toString(16);
             }
             ciclos = 0;
 
@@ -1019,10 +1454,9 @@ var game = (function () {
         input.focus();
 
 
-
         // Retornar el texto ingresado por el usuario cuando se envíe el formulario
-        return new Promise(function(resolve, reject) {
-            form.addEventListener("submit", function(e) {
+        return new Promise(function (resolve, reject) {
+            form.addEventListener("submit", function (e) {
                 e.preventDefault();
                 var formData = new FormData(form);
                 var name = formData.get("name");
@@ -1043,17 +1477,17 @@ var game = (function () {
         namesito = namesito.toString();
 
         //verificar si el string namesito es mas largo que 10 caracteres
-        if (namesito.length > 10){
-            namesito = namesito.substring(0,10);
+        if (namesito.length > 10) {
+            namesito = namesito.substring(0, 10);
         }
 
         //quitar espacios en blanco
         namesito = namesito.replace(/\s/g, '');
 
-        if (namesito == "" ){
+        if (namesito == "") {
             namesito = "default";
         }
-        let scoreRecord ={
+        let scoreRecord = {
             name: namesito,
             score: getTotalScore(),
             dateStyle: getFinalScoreDate()
@@ -1069,27 +1503,27 @@ var game = (function () {
         let scoreRecords = JSON.parse(localStorage.getItem("scoreRecords"));
         let bestScore = false;
         scoreRecords.sort((a, b) => (a.score < b.score) ? 1 : -1);
-        if (scoreRecords.length < totalBestScoresToShow){
+        if (scoreRecords.length < totalBestScoresToShow) {
             bestScore = true;
-        }else{
-            if (getTotalScore() > scoreRecords[scoreRecords.length-1].score){
+        } else {
+            if (getTotalScore() > scoreRecords[scoreRecords.length - 1].score) {
                 bestScore = true;
             }
         }
         return bestScore;
     }
 
-//funcion para mantener siempre 6 puntuaciones y ordenarlas, si sorepasan las 6 se borran las peores
+    //funcion para mantener siempre 6 puntuaciones y ordenarlas, si sorepasan las 6 se borran las peores
     function removeNoBestScores() {
         let scoreRecords = JSON.parse(localStorage.getItem("scoreRecords"));
         let scoreErase = [];
         scoreRecords.sort((a, b) => (a.score < b.score) ? 1 : -1);
-        if (scoreRecords.length > totalBestScoresToShow){
+        if (scoreRecords.length > totalBestScoresToShow) {
             for (let i = totalBestScoresToShow; i < scoreRecords.length; i++) {
                 scoreErase.push(i);
             }
             for (let i = 0; i < scoreErase.length; i++) {
-                scoreRecords.splice(scoreErase[i],1);
+                scoreRecords.splice(scoreErase[i], 1);
             }
         }
         localStorage.setItem("scoreRecords", JSON.stringify(scoreRecords));
@@ -1098,11 +1532,11 @@ var game = (function () {
     //funcion OK
     function getFinalScoreDate() {
         var date = new Date();
-        return fillZero(date.getDay()+1)+'/'+
-            fillZero(date.getMonth()+1)+'/'+
-            date.getFullYear()+' '+
-            fillZero(date.getHours())+':'+
-            fillZero(date.getMinutes())+':'+
+        return fillZero(date.getDay() + 1) + '/' +
+            fillZero(date.getMonth() + 1) + '/' +
+            date.getFullYear() + ' ' +
+            fillZero(date.getHours()) + ':' +
+            fillZero(date.getMinutes()) + ':' +
             fillZero(date.getSeconds());
     }
 
@@ -1123,7 +1557,6 @@ var game = (function () {
         let listaPuntuaciones = [];
         for (let i = 0; i < puntuaciones.length; i++) {
             listaPuntuaciones[i] = []; // Inicializar cada elemento del array con otro array vacío
-            console.log(puntuaciones[i].name);
             listaPuntuaciones[i][0] = puntuaciones[i].name;
             listaPuntuaciones[i][1] = puntuaciones[i].score;
             listaPuntuaciones[i][2] = puntuaciones[i].dateStyle;
@@ -1136,50 +1569,46 @@ var game = (function () {
     /******************************* FIN MEJORES PUNTUACIONES *******************************/
 
 
-
     /************************************************* MENU DE INICIO ********************************************************************/
 
 
     var ciclos = 0;
-// Imagen del logo
+    // Imagen del logo
 
     var openedControls = false;
     var openedCredits = false;
-    var movimientoLogo=20;
+    var movimientoLogo = 20;
     var logobajando = true;
     var openedScores = false;
 
 
-
-// Escala de las imágenes
+    // Escala de las imágenes
     var scaleFactor = 0.5;
 
     var colorNamejuego = "white";
 
 
+    // Botones del menú
 
 
-// Botones del menú
-
-
-// Dibujar el menú
+    // Dibujar el menú
     function drawMenu() {
         //logo
         //mover hacia arriba y abajo el logo de forma suave
 
-        if (logobajando){
-            movimientoLogo+=0.2;
-            if (movimientoLogo>=20){
-                logobajando=false;
+        if (logobajando) {
+            movimientoLogo += 0.2;
+            if (movimientoLogo >= 20) {
+                logobajando = false;
             }
-        }else{
-            movimientoLogo-=0.2;
-            if (movimientoLogo<=0){
-                logobajando=true;
+        } else {
+            movimientoLogo -= 0.2;
+            if (movimientoLogo <= 0) {
+                logobajando = true;
             }
         }
 
-        bufferctx.drawImage(logo, canvas.width / 2 - logo.width / 2, 50- movimientoLogo, logo.width, logo.height);
+        bufferctx.drawImage(logo, canvas.width / 2 - logo.width / 2, 50 - movimientoLogo, logo.width, logo.height);
 
         //original
         //ctx.drawImage(logo, canvas.width/2 - logo.width/2, 50);
@@ -1195,9 +1624,9 @@ var game = (function () {
         bufferctx.lineWidth = 10;
         bufferctx.font = "50px 'Press Start 2P'";
         bufferctx.textAlign = "center";
-        bufferctx.strokeText("UDES-Fender", canvas.width / 2, logo.height-60);
+        bufferctx.strokeText("UDES-Fender", canvas.width / 2, logo.height - 60);
         bufferctx.strokeText("Galaxy", canvas.width / 2, logo.height);
-        bufferctx.fillText("UDES-Fender", canvas.width / 2, logo.height-60);
+        bufferctx.fillText("UDES-Fender", canvas.width / 2, logo.height - 60);
         bufferctx.fillText("Galaxy", canvas.width / 2, logo.height);
 
         // Botones
@@ -1210,20 +1639,31 @@ var game = (function () {
             }
 
             bufferctx.fillStyle = button.color;
-            bufferctx.fillRect(button.x, button.y, button.width, button.height);
+            bufferctx.fillRect(canvas.width / 2 - button.width / 2, button.y, button.width, button.height)
             bufferctx.fillStyle = "white";
             bufferctx.font = "20px Arial";
             //text in the middle of the button
             bufferctx.textAlign = "center";
-            bufferctx.fillText(button.text, button.x + button.width/2, button.y + button.height/2 + 5);
+            bufferctx.fillText(button.text, canvas.width / 2, button.y + button.height / 2 + 5);
 
         }
 
 
-
         // Imágenes
-        bufferctx.drawImage(img1, 20, (canvas.height - img1.height*scaleFactor)-20, img1.width*scaleFactor, img1.height*scaleFactor);
-        bufferctx.drawImage(img2,canvas.width - img2.width*scaleFactor - 20, (canvas.height - img2.height*scaleFactor)-20, img2.width*scaleFactor, img2.height*scaleFactor);
+        bufferctx.drawImage(img1, 20, (canvas.height - img1.height * scaleFactor) - 20, img1.width * scaleFactor, img1.height * scaleFactor);
+        bufferctx.drawImage(img2, canvas.width - img2.width * scaleFactor - 20, (canvas.height - img2.height * scaleFactor) - 40, img2.width * scaleFactor, img2.height * scaleFactor);
+        //ponerle el nombre de la empresa "QG" en la parte inferior derecha
+        bufferctx.fillStyle = "purple";
+        bufferctx.font = "35px Arial";
+        bufferctx.textAlign = "right";
+        //agregar somreado lanco
+        bufferctx.strokeStyle = "white";
+        bufferctx.lineWidth = 5;
+        bufferctx.strokeText("Q.G.", canvas.width - 60, canvas.height - 20);
+        bufferctx.fillText("Q.G.", canvas.width - 60, canvas.height - 20);
+        //reset align
+        bufferctx.textAlign = "center";
+
 
         if (openedControls) {
             drawControlsPopup();
@@ -1231,34 +1671,40 @@ var game = (function () {
         if (openedCredits) {
             drawCreditsPopup();
         }
-        if (openedScores){
+        if (openedScores) {
             drawBestScores();
         }
 
 
-        canvas.addEventListener("click", function(event) {
+        canvas.addEventListener("click", function (event) {
             var x = event.pageX - canvas.offsetLeft;
             var y = event.pageY - canvas.offsetTop;
+            //tomar en cuenta el tamaño de la pantalla
+
             for (var i = 0; i < buttons.length; i++) {
                 var button = buttons[i];
                 button.pressed = true;
 
-                if (x > button.x && x < button.x + button.width && y > button.y && y < button.y + button.height && !openedControls && !openedCredits) {
+                if (x >= canvas.width / 2 - button.width / 2 && x <= canvas.width / 2 + button.width / 2 && y >= button.y && y <= button.y + button.height) {
                     // Cambiar el color del botón al hacer clic
                     button.color = "red";
                     // Aquí puedes agregar la lógica para cada botón
                     if (button.text === "Jugar") {
                         ShowMenu = false;
                         gameBegins = true;
-                        // Lógica para el botón Jugar
+
                     } else if (button.text === "Modo infinito") {
-                        console.log("Modo infinito");
+                        //console.log("Modo infinito");
+                        modoInfinito = true;
+                        totalEvils = 100000;
+                        ShowMenu = false;
+                        gameBegins = true;
                         // Lógica para el botón Modo infinito
                     } else if (button.text === "Controles") {
                         openedControls = true;
                     } else if (button.text === "Créditos") {
                         openedCredits = true;
-                    }else if(button.text === "Tabla de puntuaciones"){
+                    } else if (button.text === "Tabla de puntuaciones") {
                         openedScores = true;
                     }
 
@@ -1272,7 +1718,7 @@ var game = (function () {
 
     // Manejador de eventos para los botones
 
-    function drawCreditsPopup(){
+    function drawCreditsPopup() {
         createModal(canvas, canvas.width / 2 - 200, canvas.height / 2 - 200, 500, 500, "Créditos", 40);
         bufferctx.fillStyle = "white";
         bufferctx.font = "20px Arial";
@@ -1283,18 +1729,18 @@ var game = (function () {
         bufferctx.fillText("Probado en:", canvas.width / 2 + 40, canvas.height / 2 - 200 + 50 + 125 + 75);
 
         //navegadores
-        bufferctx.drawImage(chrome, canvas.width / 2 - 200 + 50+20, canvas.height / 2 - 200 + 50 + 225 + 20, 40, 40);
-        bufferctx.drawImage(firefox, (canvas.width / 2 - 200 + 50 + 50)+20+15, canvas.height / 2 - 200 + 50 + 225 + 20, 40, 40);
-        bufferctx.drawImage(opera, (canvas.width / 2 - 200 + 50 + 100)+20+30, canvas.height / 2 - 200 + 50 + 225 + 20, 40, 40);
-        bufferctx.drawImage(edge, (canvas.width / 2 - 200 + 50 + 150)+20+45, canvas.height / 2 - 200 + 50 + 225 + 20, 40, 40);
-        bufferctx.drawImage(brave, (canvas.width / 2 - 200 + 50 + 200)+20+60, canvas.height / 2 - 200 + 50 + 225 + 20, 40, 45);
-        bufferctx.drawImage(safari, (canvas.width / 2 - 200 + 50 + 250)+20+75, canvas.height / 2 - 200 + 50 + 225 + 20, 40, 40);
+        bufferctx.drawImage(chrome, canvas.width / 2 - 200 + 50 + 20, canvas.height / 2 - 200 + 50 + 225 + 20, 40, 40);
+        bufferctx.drawImage(firefox, (canvas.width / 2 - 200 + 50 + 50) + 20 + 15, canvas.height / 2 - 200 + 50 + 225 + 20, 40, 40);
+        bufferctx.drawImage(opera, (canvas.width / 2 - 200 + 50 + 100) + 20 + 30, canvas.height / 2 - 200 + 50 + 225 + 20, 40, 40);
+        bufferctx.drawImage(edge, (canvas.width / 2 - 200 + 50 + 150) + 20 + 45, canvas.height / 2 - 200 + 50 + 225 + 20, 40, 40);
+        bufferctx.drawImage(brave, (canvas.width / 2 - 200 + 50 + 200) + 20 + 60, canvas.height / 2 - 200 + 50 + 225 + 20, 40, 45);
+        bufferctx.drawImage(safari, (canvas.width / 2 - 200 + 50 + 250) + 20 + 75, canvas.height / 2 - 200 + 50 + 225 + 20, 40, 40);
 
         //2023
         bufferctx.fillText("2023 Ⓒ", canvas.width / 2 + 40, canvas.height / 2 + 250);
     }
 
-    function drawBestScores(){
+    function drawBestScores() {
         let margensuperior = 75;
         let posXCentrado = canvas.width / 2 - 200 + 100;
 
@@ -1306,7 +1752,7 @@ var game = (function () {
         bufferctx.fillText("Nombre", posXCentrado, canvas.height / 2 - 200 + 50 + margensuperior);
         bufferctx.fillText("Puntuación", posXCentrado + 150, canvas.height / 2 - 200 + 50 + margensuperior);
         bufferctx.fillText("Fecha", posXCentrado + 350, canvas.height / 2 - 200 + 50 + margensuperior);
-        bufferctx.fillText("__________________________________________________", posXCentrado+200, canvas.height / 2 - 200 + 50 + margensuperior + 15);
+        bufferctx.fillText("__________________________________________________", posXCentrado + 200, canvas.height / 2 - 200 + 50 + margensuperior + 15);
         for (let i = 0; i < scores.length; i++) {
             bufferctx.fillText(scores[i][0], posXCentrado, canvas.height / 2 - 200 + 50 + margensuperior + 50 + (i * 50));
             bufferctx.fillText(scores[i][1], posXCentrado + 150, canvas.height / 2 - 200 + 50 + margensuperior + 50 + (i * 50));
@@ -1316,7 +1762,7 @@ var game = (function () {
     }
 
     function drawControlsPopup() {
-        createModal(canvas, canvas.width/2 - 200, canvas.height/2 - 200, 500, 500, "Controles", 40);
+        createModal(canvas, canvas.width / 2 - 200, canvas.height / 2 - 200, 500, 500, "Controles", 40);
 
         let margensuperior = 50;
         //poner imagenes en el modal de controles y a su lado el texto
@@ -1345,7 +1791,7 @@ var game = (function () {
         bufferctx.font = textSize + "px Arial";
         //titulo del modal centrado en la parte superior
         bufferctx.textAlign = "center";
-        bufferctx.fillText(titulo, x + width/2, y + textSize + 20);
+        bufferctx.fillText(titulo, x + width / 2, y + textSize + 20);
 
         // Dibujar el botón de "X" con fondo cuadrado
         bufferctx.fillStyle = "red";
@@ -1356,7 +1802,7 @@ var game = (function () {
         bufferctx.fillText("X", x + width - 12.5, y + 20);
 
         // Agregar event listener para cerrar el modal al hacer clic en "X"
-        canvas.addEventListener("click", function(event) {
+        canvas.addEventListener("click", function (event) {
             var mouseX = event.pageX - canvas.offsetLeft;
             var mouseY = event.pageY - canvas.offsetTop;
             if (mouseX > x + width - 25 && mouseX < x + width && mouseY > y && mouseY < y + 25) {
@@ -1368,7 +1814,7 @@ var game = (function () {
     }
 
 
-    function initMenu(){
+    function initMenu() {
         // botones del menu de inicio
         //inicio el localStorage de los records si no existe
         if (localStorage.getItem("scoreRecords") === null) {
@@ -1429,9 +1875,9 @@ var game = (function () {
 
 
         //fuente personalizada
-         customFont = new FontFace('Press Start 2P', 'url(css/PressStart2P-Regular.ttf)');
-// Esperar a que se cargue la fuente
-        customFont.load().then(function(font) {
+        customFont = new FontFace('Press Start 2P', 'url(css/PressStart2P-Regular.ttf)');
+        // Esperar a que se cargue la fuente
+        customFont.load().then(function (font) {
             // Establecer la fuente como la fuente actual del contexto del canvas
             document.fonts.add(font);
             ctx.font = "30px 'Press Start 2P', Press Start 2P"; // Ejemplo de cómo utilizar la fuente personalizada
@@ -1445,25 +1891,26 @@ var game = (function () {
         // Comprobar si el usuario ha interactuado con la página
         var hasInteracted = false;
         musicplaying = audio
+
         function checkInteraction() {
             hasInteracted = true;
         }
+
         document.addEventListener('mousedown', checkInteraction);
         document.addEventListener('touchstart', checkInteraction);
 
         // Reproducir el audio cuando el usuario haya interactuado con la página
         function playAudio() {
             if (hasInteracted) {
-                musicplaying.loop=true;
+                musicplaying.loop = true;
                 musicplaying.play();
             } else {
                 setTimeout(playAudio, 100);
             }
         }
+
         playAudio();
     }
-
-
     return {
         init: init
     }

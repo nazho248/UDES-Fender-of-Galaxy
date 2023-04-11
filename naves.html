@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
     <title>UDES-Fender</title>
@@ -11,6 +11,7 @@
         body {
             margin: 0;
             overflow: hidden;
+            /*todo quitar cuando implementado*/
 /*            background-color: #000;
             color: #fff;
             font-family: Arial, sans-serif;*/
@@ -24,18 +25,18 @@
             font-size: 4em;
             margin-top: 100px;
         }
-/*        #juego {
+
+/*        todo quitar cuando implementado
+        #juego {
             display: none;
-        }*/
-
-
+        }
         #loader {
-            border: 16px solid #f3f3f3; /* el color del borde de la rosca */
-            border-top: 16px solid #3498db; /* el color del borde superior de la rosca */
-            border-radius: 50%; /* la forma de la rosca */
+            border: 16px solid #000000; !* el color del borde de la rosca *!
+            border-top: 16px solid #db3434; !* el color del borde superior de la rosca *!
+            border-radius: 50%; !* la forma de la rosca *!
             width: 120px;
             height: 120px;
-            animation: spin 2s linear infinite; /* la animación de giro */
+            animation: spin 2s linear infinite; !* la animación de giro *!
             margin: auto;
             position: absolute;
             top: 0;
@@ -48,37 +49,11 @@
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
-        }
+        }*/
 
     </style>
 </head>
 <body onload="game.init()">
-<!--    <div class="contenedor">
-        <div class="izquierda">
-                <img src="images/autentia.png" style="width: 250px; height: 100px;" />
-            <ul class="lista">
-                <li class="titulo">CONTROLES:</li>
-                <li class="izquierda">izquierda</li>
-                <li class="derecha">derecha</li>
-                <li class="espacio">disparar</li>
-            </ul>
-            <ul class="lista">
-                <li class="titulo">PROBADO CON:</li>
-                <li class="firefox">Mozilla Firefox 11</li>
-                <li class="chrome">Google Chrome 18</li>
-                <li class="safari">Safari 5.1</li>
-            </ul>
-            <ul class="lista">
-                <li class="titulo">OTROS:</li>
-                <li><a>Tutorial</a></li>
-                <li><a>Especificaciones del juego</a></li>
-            </ul>
-        </div>
-        <div class="derecha">
-            <h3 class="tituloPuntuaciones">MEJORES PUNTUACIONES</h3>
-            <ul id="puntuaciones"></ul>
-        </div>-->
-
 <!--<div id="pantalla-carga">
     <h1>Cargando juego...</h1>
 </div>
@@ -106,17 +81,19 @@
     canvas.width = w;
     canvas.height = h;
 
-    // Por ejemplo, si tienes un objeto que se mueve a lo largo de la pantalla:
-    var myObject = {
-        x: canvas.width / 2,
-        y: canvas.height - 50,
-        speed: 5
-    };
+    //on resize window event
+    window.addEventListener('resize', function(event){
+        w = window.innerWidth;
+        h = window.innerHeight;
+        canvas.width = w;
+        canvas.height = h;
+    });
+
 </script>
 
-<script>
+<!--<script>
     //game loader todo habilitar cuando termine todo
-/*    window.addEventListener('load', function() {
+    window.addEventListener('load', function() {
         // Mostrar pantalla de carga
         var pantallaCarga = document.getElementById('pantalla-carga');
         pantallaCarga.style.display = 'block';
@@ -130,8 +107,8 @@
             var juego = document.getElementById('juego');
             juego.style.display = 'block';
         }, 2000);
-    });*/
-</script>
+    });
+</script>-->
 
     </body>
 </html>
