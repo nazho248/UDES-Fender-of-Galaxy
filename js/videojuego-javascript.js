@@ -414,13 +414,17 @@ var game = (function () {
             if (keyPressed.fire)
                 shoot();
             if (!puttingText)
-                if (keyPressed.R && youLoose)
-                    resetGame();
+                if (keyPressed.R && youLoose){
+                    //reset music
+                    musicplaying.currentTime = 0;
+                    musicplaying.play()
+                    resetGame()
+                }
             if (keyPressed.up)
-                //console.log("up");
+                console.log("up");
             //player.posY -= player.speed;
             if (keyPressed.down)
-                //console.log("down")
+                console.log("down")
             //player.posY += player.speed;
             if (keyPressed.suicide && !puttingText)
                 player.killPlayer()
