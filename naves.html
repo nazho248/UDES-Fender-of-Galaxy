@@ -11,10 +11,9 @@
         body {
             margin: 0;
             overflow: hidden;
-            /*todo quitar cuando implementado*/
-/*            background-color: #000;
+            background-color: #000;
             color: #fff;
-            font-family: Arial, sans-serif;*/
+            font-family: Arial, sans-serif;
             text-align: center;
         }
         /*hide the scrollbar*/
@@ -26,17 +25,16 @@
             margin-top: 100px;
         }
 
-/*        todo quitar cuando implementado
         #juego {
             display: none;
         }
         #loader {
-            border: 16px solid #000000; !* el color del borde de la rosca *!
-            border-top: 16px solid #db3434; !* el color del borde superior de la rosca *!
-            border-radius: 50%; !* la forma de la rosca *!
+            border: 16px solid #000000; /* el color del borde de la rosca */
+            border-top: 16px solid #db3434; /* el color del borde superior de la rosca */
+            border-radius: 50%; /* la forma de la rosca */
             width: 120px;
             height: 120px;
-            animation: spin 2s linear infinite; !* la animación de giro *!
+            animation: spin 2s linear infinite; /* la animación de giro */
             margin: auto;
             position: absolute;
             top: 0;
@@ -49,15 +47,15 @@
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
-        }*/
+        }
 
     </style>
 </head>
 <body onload="game.init()">
-<!--<div id="pantalla-carga">
+<div id="pantalla-carga">
     <h1>Cargando juego...</h1>
 </div>
-<div id="loader"></div>-->
+<div id="loader"></div>
 
         <div id="juego">
             <canvas id="canvas" width="1000" height="1000">TU NAVEGADOR NO SOPORTA HTML5!</canvas>
@@ -91,8 +89,7 @@
 
 </script>
 
-<!--<script>
-    //game loader todo habilitar cuando termine todo
+<script>
     window.addEventListener('load', function() {
         // Mostrar pantalla de carga
         var pantallaCarga = document.getElementById('pantalla-carga');
@@ -106,9 +103,9 @@
             // Mostrar el juego
             var juego = document.getElementById('juego');
             juego.style.display = 'block';
-        }, 2000);
+        }, 1000);
     });
-</script>-->
+</script>
 
     </body>
 </html>

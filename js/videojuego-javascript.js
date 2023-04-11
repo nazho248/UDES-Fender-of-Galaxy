@@ -31,7 +31,7 @@ var game = (function () {
         evilLifeInit = 3,    // vidas que tiene el malo al principio (se van incrementando)
         powerUpProbabilityInit = 20, //del 1 al 100, entre mas alto mas probabilidad
         scoreTonextLevelInit = 10, //cuanto hay que matar para pasar de nivel
-        playerShotDelayInit = 10,
+        playerShotDelayInit = 400,
         probabilidadGenAsteroideInit = 3, //del 1 al 10, entre mas alto mas probabilidad
         asteroidMaxSpeedInit = 2,
         asteroidsOnScreenInit = 3, //cuantos asteroides hay en pantalla al principio
@@ -57,7 +57,7 @@ var game = (function () {
         playerShot,
         bgMain,
         bgMain,
-        modoInfinito = false, // todo modo infinito
+        modoInfinito = false,
         bgBoss,
         evilSpeed = evilSpeedInit,
         evilsKilled = 0,
@@ -77,7 +77,7 @@ var game = (function () {
         finalBossLife = 15,
 
         totalBestScoresToShow = 6, // las mejores puntuaciones que se mostraran
-        bgSpeed = bgSpeedInit, // Velocidad de desplazamiento del fondo fixme desplazamiento del fondo
+        bgSpeed = bgSpeedInit,
         playerShotsBuffer = [],
         evilShotsBuffer = [],
         evilShotImage,
@@ -104,7 +104,6 @@ var game = (function () {
             pause: 27 //escape
         },
         nextPlayerShot = 0,
-        //todo variable para modificar el delay de balas, para powerup (en ms tal vez) 250
         playerShotDelay = playerShotDelayInit,
         now = 0;
 
@@ -281,7 +280,6 @@ var game = (function () {
         bufferctx = buffer.getContext('2d');
 
         initMenu();
-        //fixme aqui se añade el jugador y empieza el juego
         player = new Player(playerLife, 0);
         //evilCounter = 5;
         createNewEvil()
@@ -419,11 +417,10 @@ var game = (function () {
                 if (keyPressed.R && youLoose)
                     resetGame();
             if (keyPressed.up)
-                //todo controles arriba y abajo
-                console.log("up");
+                //console.log("up");
             //player.posY -= player.speed;
             if (keyPressed.down)
-                console.log("down")
+                //console.log("down")
             //player.posY += player.speed;
             if (keyPressed.suicide && !puttingText)
                 player.killPlayer()
@@ -588,7 +585,6 @@ var game = (function () {
 
         this.kill = function () {
 
-            console.log(this.finalBoss)
             if (this.finalBoss){
                 explosion2.play();
             }else{
@@ -611,7 +607,6 @@ var game = (function () {
 
         this.update = function () {
 
-            console.log(GenerateBoss)
             let minHeight = canvas.height - player.height - 50 - this.height;
             let maxHeight = 200;
 
@@ -737,7 +732,7 @@ var game = (function () {
         }, 1000 + getRandomNumber(2500));
 
         this.toString = function () {
-            return 'Enemigo con vidas:' + this.life + 'shotss: ' + this.shots + ' puntos por matar: ' + this.pointsToKill;
+            return 'Enemigo con vidas:' + this.life + 'shotss: ' + this.shots + ' puntos por matar: ' + this.pointsToKill + " X: "+this.posX + "Y: "+this.posY +" muerto: "+this.dead
         }
 
     }
@@ -865,7 +860,6 @@ var game = (function () {
     function generatePowerUp(posX, posY) {
         var probabilidad = getRandomNumber(100);
         if (probabilidad <= powerUpProbability && !PowerUp.destroyed) {
-            console.log("Generando Power Up :)")
             if (!powerUpShowing) {
                 powerUpShowing = true;
                 powerUp = new PowerUp(posX, posY, getRandomNumber(2) + 1);
@@ -1226,7 +1220,6 @@ var game = (function () {
 
 
         if (changeMusic) {
-            console.log("cambio de musica"+audioID)
             changeMusic = false
             musicplaying.currentTime = 0;
             musicplaying.pause();
@@ -1446,7 +1439,6 @@ var game = (function () {
     }
 
     function spaceBackground() {
-        //funcion para dibujar el fondo del espacio en todo el canvas
         var grd = ctx.createLinearGradient(0, 0, 0, canvas.height);
 
         //ir oscureciendo el fondo del espacio para dar sensacion de profundidad
@@ -1760,6 +1752,9 @@ var game = (function () {
             var y = event.pageY - canvas.offsetTop;
             //tomar en cuenta el tamaño de la pantalla
 
+            if (!ShowMenu){
+                return
+            }
             for (var i = 0; i < buttons.length; i++) {
                 var button = buttons[i];
                 button.pressed = true;
@@ -1773,7 +1768,6 @@ var game = (function () {
                         gameBegins = true;
 
                     } else if (button.text === "Modo infinito") {
-                        //console.log("Modo infinito");
                         modoInfinito = true;
                         totalEvils = 100000;
                         ShowMenu = false;
