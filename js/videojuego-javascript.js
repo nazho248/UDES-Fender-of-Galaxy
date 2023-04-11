@@ -38,7 +38,11 @@ var game = (function () {
         nivel = 1,
         shotSpeedInit = 4,
         finalBossShotsInit = 30,
-        finalBossLifeInit = 15;
+        finalBossLifeInit = 15,
+       pausarJuego = false,
+        bgSpeedInit = 1, // Velocidad de desplazamiento del fondo
+        // Variable para controlar si la tecla Escape se puede usar para pausar el juego
+        allowPause = true;
 
 
         // Variables globales a la aplicacion
@@ -72,8 +76,8 @@ var game = (function () {
         finalBossShots = 30,
         finalBossLife = 15,
 
-        totalBestScoresToShow = 6 - 1, // las mejores puntuaciones que se mostraran
-        bgSpeed = 1, // Velocidad de desplazamiento del fondo fixme desplazamiento del fondo
+        totalBestScoresToShow = 6, // las mejores puntuaciones que se mostraran
+        bgSpeed = bgSpeedInit, // Velocidad de desplazamiento del fondo fixme desplazamiento del fondo
         playerShotsBuffer = [],
         evilShotsBuffer = [],
         evilShotImage,
@@ -96,12 +100,14 @@ var game = (function () {
             R: 82,       // tecla R
             up: 38, //tecla arriba
             down: 40, //tecla abajo
-            suicide: 77 //tecla M
+            suicide: 77, //tecla M
+            pause: 27 //escape
         },
         nextPlayerShot = 0,
         //todo variable para modificar el delay de balas, para powerup (en ms tal vez) 250
         playerShotDelay = playerShotDelayInit,
         now = 0;
+
 
     //otras variables para con estrellitas y mas uso
     var stars = [],
@@ -112,7 +118,7 @@ var game = (function () {
         colorMiddle = "#000000",
         colorTop = "#3f1051",
         ciclos = 0,
-        ciclosMax = 130, //esto maso es cada segundo
+        ciclosMax = 3500, // 130 esto maso es cada segundo cada iteracion para oscurecer el color
         GameInitiated = true,
         GameInitiatedStars = true;
 
@@ -161,7 +167,9 @@ var game = (function () {
         explosion,
         explosion2,
         liFeUpPowerUp,
-        machineGunPowerUp;
+        machineGunPowerUp,
+        pause,
+        unpause;
 
     //variables Asteroides
     var cantidadAsteroidesMaxima = asteroidsOnScreenInit,
@@ -246,6 +254,8 @@ var game = (function () {
         explosion2 = new Audio("sfx/explosion1.mp3")
         liFeUpPowerUp = new Audio("sfx/coin_powerup.mp3");
         machineGunPowerUp = new Audio("sfx/boing_powerup.mp3");
+        pause= new Audio("sfx/pause.wav");
+        unpause= new Audio("sfx/unpause.wav");
 
         //powerup imagen
         machineGun = new Image();
@@ -328,11 +338,12 @@ var game = (function () {
 //si es modo infinito, aumentar la dificultad nivel, sumando un valor a la variable
         if (modoInfinito) {
             shotSpeed += 0.1;
-            evilSpeed += 0.05;
+            evilSpeed += 0.15;
             evilShots += 5;
             finalBossLife += 1.5;
+            bgSpeed += 0.5;
             finalBossShots +=9;
-            scoreTonextLevel = Math.floor(scoreTonextLevel+10 + (nivel * 3.5));
+            scoreTonextLevel = Math.floor(scoreTonextLevel+10 + (nivel * 10));
             evilLife += 1 + Math.floor(0.3*nivel)
             probabilidadGenAsteroide += (nivel%2 === 0) ? 1 : 0;
             asteroidMaxSpeed += 0.4;
@@ -344,11 +355,16 @@ var game = (function () {
             if (nivel % 2 === 0 && !bossDefeated){
                 GenerateBoss = true;
             }
+            if (nivel %4 ===0){
+                changeMusic = true;
+                audioID = "level" + (nivel/4);
+            }
 
         }else{
                 evilSpeed += 0.08;
                 evilShots += 5;
-                evilLife += 1 + Math.floor( 0.7*evilsKilled)
+            bgSpeed += 1;
+            evilLife += 1 + Math.floor( 0.7*evilsKilled)
                 shotSpeed += 0.1;
                 probabilidadGenAsteroide += 1;
                 asteroidMaxSpeed += 0.7;
@@ -391,8 +407,6 @@ var game = (function () {
         };
 
         player.doAnything = function () {
-
-
             if (player.dead)
                 return;
             if (keyPressed.left && player.posX > 5)
@@ -413,7 +427,37 @@ var game = (function () {
             //player.posY += player.speed;
             if (keyPressed.suicide && !puttingText)
                 player.killPlayer()
+            if (keyPressed.pause && !ShowMenu && !youLoose && !congratulations)
+                pauseGame();
         };
+
+
+        // Variable para controlar si la tecla Escape se puede usar para pausar el juego
+        var allowPause = true;
+
+// Función para hacer pausa en el juego
+        function pauseGame() {
+            if (!allowPause) {
+                return;
+            }
+
+            pausarJuego = !pausarJuego;
+            if (pausarJuego) {
+                musicplaying.pause();
+                pause.play();
+            } else {
+                musicplaying.play();
+                unpause.play();
+            }
+
+            // Establecer una espera de 500 ms antes de permitir que se use Escape para pausar nuevamente
+            allowPause = false;
+            setTimeout(() => {
+                allowPause = true;
+            }, 500);
+        }
+
+
 
         player.killPlayer = function () {
             if (this.life > 0) {
@@ -423,6 +467,7 @@ var game = (function () {
                 this.src = playerKilledImage.src;
                 createNewEvil();
                 explosion.play();
+
                 setTimeout(function () {
                     player = new Player(player.life - 1, player.score);
                 }, 500);
@@ -517,27 +562,38 @@ var game = (function () {
         this.height = this.image.height;
         this.width = this.image.width;
         this.firstMovement = true;
-        //if finalBoss is undefined, it will be false
-        this.finalBoss = finalBoss
+        this.finalBoss = false
         this.goingDown = true;
         this.verticalSpeed = 0.75
 
 
         var desplazamientoHorizontal = minHorizontalOffset +
             getRandomNumber(maxHorizontalOffset - minHorizontalOffset);
-        this.minX = getRandomNumber(canvas.width - desplazamientoHorizontal);
-        this.maxX = this.minX + desplazamientoHorizontal - 40;
+        //tener en cuenta el tamaño del enemigo
+
         this.direction = 'D';
         if (finalBoss) {
             //hacerlo mas grande
             this.width = this.width * 3;
             this.height = this.height * 3;
+            this.minX = getRandomNumber(canvas.width - desplazamientoHorizontal);
+            this.maxX = this.minX + desplazamientoHorizontal - 40*3;
             //pos x mas abajo para que se vea
             this.posY = 0;
+        }else{
+            this.minX = getRandomNumber(canvas.width - desplazamientoHorizontal);
+            this.maxX = this.minX + desplazamientoHorizontal - 40;
         }
 
 
         this.kill = function () {
+
+            console.log(this.finalBoss)
+            if (this.finalBoss){
+                explosion2.play();
+            }else{
+                enemyDead.play();
+            }
 
 
             this.dead = true;
@@ -638,6 +694,12 @@ var game = (function () {
                 }
             }
 
+            //si se sale de la pantalla horizontalmente se genera otro minX y maxX
+            if (this.posX < 0 || this.posX > canvas.width) {
+                this.minX = getRandomNumber(canvas.width - desplazamientoHorizontal);
+                this.maxX = this.minX + desplazamientoHorizontal - 40;
+            }
+
 
             // Mover al enemigo de izquierda a derecha
 
@@ -698,7 +760,7 @@ var game = (function () {
     function FinalBoss() {
         Object.getPrototypeOf(FinalBoss.prototype).constructor.call(this, finalBossLife, finalBossShots, bossImages, true);
         this.goDownSpeed = evilSpeed / 2;
-        this.pointsToKill = 20;
+        this.pointsToKill = 20 + evilsKilled*2 + nivel*4;
     }
 
     FinalBoss.prototype = Object.create(Enemy.prototype);
@@ -938,10 +1000,12 @@ var game = (function () {
         // la primera condicion es modo normal, la segunda es modo infinito
         if (totalEvils > 0 && !bossDefeated && !modoInfinito || modoInfinito && !GenerateBoss) {
             evil = new Evil(evilLife, evilShots, null, false);
+            evil.finalBoss = false;
         } else {
             GenerateBoss = false;
             bossDefeated = true;
             evil = new FinalBoss();
+            evil.finalBoss = true;
         }
     }
 
@@ -968,14 +1032,7 @@ var game = (function () {
                 scoreObtenido = evil.pointsToKill;
                 player.score += evil.pointsToKill;
                 generatePowerUp(evil.posX, evil.posY);
-                console.log(this.finalBoss)
-                if (this.finalBoss){
-                    console.log("sonido malote")
-                    explosion2.play();
-                }else{
-                    enemyDead.play();
 
-                }
             }
             shot.deleteShot(parseInt(shot.identifier));
             return false;
@@ -1091,6 +1148,7 @@ var game = (function () {
                 openedScores = false;
                 openedControls = false;
                 openedCredits = false;
+                pausarJuego = false;
                 resetGame();
             }
         });
@@ -1119,6 +1177,8 @@ var game = (function () {
         printTexto = false
         evilCounter = 0
         evilsKilled = 0
+
+        bgSpeed = bgSpeedInit
 
 
         evilhit = false;
@@ -1166,6 +1226,7 @@ var game = (function () {
 
 
         if (changeMusic) {
+            console.log("cambio de musica"+audioID)
             changeMusic = false
             musicplaying.currentTime = 0;
             musicplaying.pause();
@@ -1183,10 +1244,29 @@ var game = (function () {
             ciclos++;
             drawMenu();
         } else {
+            //comienzaJuego
             if (gameBegins) {
                 gameBegins = false;
-                audioID = "level1"
+                //elegir entre cancion level1 o level2 de forma aleatoria
+                if (Math.random() > 0.5) {
+                    audioID = "level1"
+                }else{
+                    audioID = "level2"
+                }
                 changeMusic = true;
+            }
+
+            if (pausarJuego){
+                //dibujar texto en el centro de la pantalla y boton de pausa
+                showLifeAndScore()
+                bufferctx.textAlign = "center";
+                bufferctx.fillStyle = "rgb(204,50,153)";
+                bufferctx.font = "bold 22px Arial";
+                bufferctx.fillText("Pausa", canvas.width / 2, canvas.height / 2 - 30);
+                bufferctx.fillText("Pulsa ESC para continuar", canvas.width / 2, canvas.height / 2);
+                //boton de volver al menu
+                button(canvas.width / 2 - 100, canvas.height / 2 + 100, 200, 50, "0,201,47", "255,201,47", 1, "Volver al Menu", "255,255,255", 20, "Arial", "restart", 13);
+                return
             }
 
 
@@ -1212,7 +1292,6 @@ var game = (function () {
 
                 //dibujar el jugador y el enemigo
                 bufferctx.drawImage(player, player.posX, player.posY);
-                bufferctx.drawImage(evil.image, evil.posX, evil.posY, evil.width, evil.height);
 
                 createAsteroid();
                 updateAsteroids();
@@ -1311,7 +1390,7 @@ var game = (function () {
         }
 
         //Math.random() * (max - min) + min
-        this.speed = Math.random() * 2 + 0.5;
+        this.speed = Math.random() * 2 + bgSpeed;
         //this.size = Math.random() * 10 + 5;
         this.size = Math.random() * (15 - 5) + 5
         this.opacity = Math.random() * 0.3 + 0.5; // opacidad aleatoria entre 0.5 y 1
