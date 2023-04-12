@@ -36,16 +36,17 @@ var game = (function () {
         asteroidMaxSpeedInit = 2,
         asteroidsOnScreenInit = 3, //cuantos asteroides hay en pantalla al principio
         nivel = 1,
-        shotSpeedInit = 4,
+        shotSpeedInit = 6,
         finalBossShotsInit = 30,
         finalBossLifeInit = 15,
-       pausarJuego = false,
+        pausarJuego = false,
         bgSpeedInit = 1, // Velocidad de desplazamiento del fondo
         // Variable para controlar si la tecla Escape se puede usar para pausar el juego
-        allowPause = true;
+        allowPause = true,
+        primerEnemigo = true;
 
 
-        // Variables globales a la aplicacion
+    // Variables globales a la aplicacion
     var canvas,
         ctx,
         buffer,
@@ -86,7 +87,8 @@ var game = (function () {
         bossDefeated = false,
         evilImages = {
             animation: [],
-            killed: new Image()
+            killed: new Image(),
+            live: new Image()
         },
         bossImages = {
             animation: [],
@@ -150,6 +152,7 @@ var game = (function () {
         der,
         musicplaying,
         audioID,
+        escapeKey,
         changeMusic = false,
         gameBegins = false;
 
@@ -174,7 +177,8 @@ var game = (function () {
     var cantidadAsteroidesMaxima = asteroidsOnScreenInit,
         asteroids = [],
         probabilidadGenAsteroide = probabilidadGenAsteroideInit, //del 1 al 10, entre mas alto mas probabilidad
-        asteroidMaxSpeed = asteroidMaxSpeedInit;
+        asteroidMaxSpeed = asteroidMaxSpeedInit,
+        asteroidImage;
 
     //variables para el powerup
     var machineGun,
@@ -211,6 +215,10 @@ var game = (function () {
         evilShotImage.src = 'images/disparo_malo.png';
         playerKilledImage = new Image();
         playerKilledImage.src = 'images/bueno_muerto.png';
+        asteroidImage = new Image();
+        asteroidImage.src = 'images/asteroid.png';
+        escapeKey = new Image();
+        escapeKey.src = 'images/escape_key.png';
 
         //llamo imagenes de los navegadores
         chrome = new Image();
@@ -253,8 +261,8 @@ var game = (function () {
         explosion2 = new Audio("sfx/explosion1.mp3")
         liFeUpPowerUp = new Audio("sfx/coin_powerup.mp3");
         machineGunPowerUp = new Audio("sfx/boing_powerup.mp3");
-        pause= new Audio("sfx/pause.wav");
-        unpause= new Audio("sfx/unpause.wav");
+        pause = new Audio("sfx/pause.wav");
+        unpause = new Audio("sfx/unpause.wav");
 
         //powerup imagen
         machineGun = new Image();
@@ -273,6 +281,11 @@ var game = (function () {
         audioContext = new AudioContext();
 
         preloadImages();
+
+        // ensure that the [1[ evilimages is charged
+        let imagexd = new Image();
+        imagexd.src = 'images/malo1.png'
+        evilImages.animation[0] = imagexd;
 
         buffer = document.createElement('canvas');
         buffer.width = canvas.width;
@@ -312,20 +325,20 @@ var game = (function () {
         bufferctx.fillStyle = "rgb(255,255,255)";
         bufferctx.font = "bold 16px Arial";
         //si es modoinfinito texto es lvl 1, si es falso mostrar "Jefe Final"
-        let txtlvl = ((modoInfinito) ? ("Nivel: " + nivel) : ("Jefe Final") );
+        let txtlvl = ((modoInfinito) ? ("Nivel: " + nivel) : ("Jefe Final"));
         bufferctx.fillText(txtlvl, 10, 40);
         bufferctx.fillStyle = "rgb(255,255,255)";
         bufferctx.fillRect(10, 50, 200, 20);
         bufferctx.fillStyle = "rgb(42,105,118)";
-        let progressBar = ( (modoInfinito) ? (200 * ( (player.score - (nivel - 1) * scoreTonextLevel) / scoreTonextLevel)) : (200 * (evilsKilled / (totalEvilsInit+1)) ) );
+        let progressBar = ((modoInfinito) ? (200 * ((player.score - (nivel - 1) * scoreTonextLevel) / scoreTonextLevel)) : (200 * (evilsKilled / (totalEvilsInit + 1))));
         bufferctx.fillRect(10, 50, progressBar, 20);
         if (modoInfinito) {
             if (player.score - (nivel - 1) * scoreTonextLevel >= scoreTonextLevel) {
                 nivel = Math.floor(player.score / scoreTonextLevel) + 1;
                 dificultad();
             }
-        }else if ((evilsKilled+1)%3 === 0){
-            evilsKilled+=1
+        } else if ((evilsKilled + 1) % 3 === 0) {
+            evilsKilled += 1
             dificultad();
         }
 
@@ -333,40 +346,40 @@ var game = (function () {
 
     //controlador de dificultad
     function dificultad() {
-//si es modo infinito, aumentar la dificultad nivel, sumando un valor a la variable
+        //si es modo infinito, aumentar la dificultad nivel, sumando un valor a la variable
         if (modoInfinito) {
             shotSpeed += 0.1;
             evilSpeed += 0.15;
             evilShots += 5;
             finalBossLife += 1.5;
             bgSpeed += 0.5;
-            finalBossShots +=9;
-            scoreTonextLevel = Math.floor(scoreTonextLevel+10 + (nivel * 10));
-            evilLife += 1 + Math.floor(0.3*nivel)
-            probabilidadGenAsteroide += (nivel%2 === 0) ? 1 : 0;
+            finalBossShots += 9;
+            scoreTonextLevel = Math.floor(scoreTonextLevel + 10 + (nivel * 10));
+            evilLife += 1 + Math.floor(0.3 * nivel)
+            probabilidadGenAsteroide += (nivel % 2 === 0) ? 1 : 0;
             asteroidMaxSpeed += 0.4;
             //floor para que sea un entero siempre
-            if (cantidadAsteroidesMaxima < 25){
+            if (cantidadAsteroidesMaxima < 25) {
                 cantidadAsteroidesMaxima = Math.floor(cantidadAsteroidesMaxima + 1.4);
             }
             bossDefeated = false;
-            if (nivel % 2 === 0 && !bossDefeated){
+            if (nivel % 2 === 0 && !bossDefeated) {
                 GenerateBoss = true;
             }
-            if (nivel %4 ===0){
+            if (nivel % 4 === 0) {
                 changeMusic = true;
-                audioID = "level" + (nivel/4);
+                audioID = "level" + (nivel / 4);
             }
 
-        }else{
-                evilSpeed += 0.08;
-                evilShots += 5;
+        } else {
+            evilSpeed += 0.08;
+            evilShots += 5;
             bgSpeed += 1;
-            evilLife += 1 + Math.floor( 0.7*evilsKilled)
-                shotSpeed += 0.1;
-                probabilidadGenAsteroide += 1;
-                asteroidMaxSpeed += 0.7;
-                cantidadAsteroidesMaxima = Math.floor(cantidadAsteroidesMaxima + 1.7);
+            evilLife += 1 + Math.floor(0.7 * evilsKilled)
+            shotSpeed += 0.1;
+            probabilidadGenAsteroide += 1;
+            asteroidMaxSpeed += 0.7;
+            cantidadAsteroidesMaxima = Math.floor(cantidadAsteroidesMaxima + 1.7);
 
         }
     }
@@ -414,7 +427,7 @@ var game = (function () {
             if (keyPressed.fire)
                 shoot();
             if (!puttingText)
-                if (keyPressed.R && youLoose){
+                if (keyPressed.R && youLoose) {
                     //reset music
                     musicplaying.currentTime = 0;
                     musicplaying.play()
@@ -436,7 +449,7 @@ var game = (function () {
         // Variable para controlar si la tecla Escape se puede usar para pausar el juego
         var allowPause = true;
 
-// Función para hacer pausa en el juego
+        // Función para hacer pausa en el juego
         function pauseGame() {
             if (!allowPause) {
                 return;
@@ -578,10 +591,10 @@ var game = (function () {
             this.width = this.width * 3;
             this.height = this.height * 3;
             this.minX = getRandomNumber(canvas.width - desplazamientoHorizontal);
-            this.maxX = this.minX + desplazamientoHorizontal - 40*3;
+            this.maxX = this.minX + desplazamientoHorizontal - 40 * 3;
             //pos x mas abajo para que se vea
             this.posY = 0;
-        }else{
+        } else {
             this.minX = getRandomNumber(canvas.width - desplazamientoHorizontal);
             this.maxX = this.minX + desplazamientoHorizontal - 40;
         }
@@ -589,9 +602,9 @@ var game = (function () {
 
         this.kill = function () {
 
-            if (this.finalBoss){
+            if (this.finalBoss) {
                 explosion2.play();
-            }else{
+            } else if(!primerEnemigo){
                 enemyDead.play();
             }
 
@@ -714,7 +727,7 @@ var game = (function () {
                 this.image = enemyImages.animation[this.imageNumber - 1];
             }
         }
-        ;
+            ;
 
         this.isOutOfScreen = function () {
             return this.posY > (canvas.height + 15);
@@ -736,7 +749,7 @@ var game = (function () {
         }, 1000 + getRandomNumber(2500));
 
         this.toString = function () {
-            return 'Enemigo con vidas:' + this.life + 'shotss: ' + this.shots + ' puntos por matar: ' + this.pointsToKill + " X: "+this.posX + "Y: "+this.posY +" muerto: "+this.dead
+            return 'Enemigo con vidas:' + this.life + 'shotss: ' + this.shots + ' puntos por matar: ' + this.pointsToKill + " X: " + this.posX + "Y: " + this.posY + " muerto: " + this.dead
         }
 
     }
@@ -745,11 +758,11 @@ var game = (function () {
     function Evil(vidas, disparos) {
         Object.getPrototypeOf(Evil.prototype).constructor.call(this, vidas, disparos, evilImages);
         this.goDownSpeed = evilSpeed;
-        if(modoInfinito){
+        if (modoInfinito) {
             //ganar puntos de acuerdo al nivel y la cantidad de enemigos matados
-            this.pointsToKill = 5 + evilsKilled+ vidas*nivel -3;
-        }else{
-            this.pointsToKill = 5 + evilsKilled+ vidas -3;
+            this.pointsToKill = 5 + evilsKilled + vidas * nivel - 3;
+        } else {
+            this.pointsToKill = 5 + evilsKilled + vidas - 3;
         }
     }
 
@@ -759,7 +772,7 @@ var game = (function () {
     function FinalBoss() {
         Object.getPrototypeOf(FinalBoss.prototype).constructor.call(this, finalBossLife, finalBossShots, bossImages, true);
         this.goDownSpeed = evilSpeed / 2;
-        this.pointsToKill = 20 + evilsKilled*2 + nivel*4;
+        this.pointsToKill = 20 + evilsKilled * 2 + nivel * 4;
     }
 
     FinalBoss.prototype = Object.create(Enemy.prototype);
@@ -773,7 +786,7 @@ var game = (function () {
             }, getRandomNumber(50));
 
         } else {
-            if (!modoInfinito){
+            if (!modoInfinito) {
                 setTimeout(function () {
                     playSFXwinLoose();
                     SaveHiScore();
@@ -893,8 +906,8 @@ var game = (function () {
         this.posXTexto = 0;
         this.posYTexto = 0;
 
-        if (modoInfinito){
-            this.score += Math.floor(nivel*0.6);
+        if (modoInfinito) {
+            this.score += Math.floor(nivel * 0.6);
         }
 
 
@@ -1184,8 +1197,8 @@ var game = (function () {
         modoInfinito = false;
         youLoose = false;
         onlyonce = 1,
-        bossDefeated = false,
-        asteroids = []
+            bossDefeated = false,
+            asteroids = []
         evilShotsBuffer = []
         playerShotsBuffer = []
         createNewEvil()
@@ -1247,13 +1260,13 @@ var game = (function () {
                 //elegir entre cancion level1 o level2 de forma aleatoria
                 if (Math.random() > 0.5) {
                     audioID = "level1"
-                }else{
+                } else {
                     audioID = "level2"
                 }
                 changeMusic = true;
             }
 
-            if (pausarJuego){
+            if (pausarJuego) {
                 //dibujar texto en el centro de la pantalla y boton de pausa
                 showLifeAndScore()
                 bufferctx.textAlign = "center";
@@ -1289,6 +1302,13 @@ var game = (function () {
 
                 //dibujar el jugador y el enemigo
                 bufferctx.drawImage(player, player.posX, player.posY);
+                //dibujar enemigo
+                bufferctx.drawImage(evil.image, evil.posX, evil.posY);
+
+                if (primerEnemigo) {
+                    evil.kill();
+                    primerEnemigo = false;
+                }
 
                 createAsteroid();
                 updateAsteroids();
@@ -1655,6 +1675,7 @@ var game = (function () {
     var movimientoLogo = 20;
     var logobajando = true;
     var openedScores = false;
+    var openedHelp = false;
 
 
     // Escala de las imágenes
@@ -1748,6 +1769,8 @@ var game = (function () {
         }
         if (openedScores) {
             drawBestScores();
+        } if (openedHelp) {
+            drawHelpPopup();
         }
 
 
@@ -1756,7 +1779,7 @@ var game = (function () {
             var y = event.pageY - canvas.offsetTop;
             //tomar en cuenta el tamaño de la pantalla
 
-            if (!ShowMenu){
+            if (!ShowMenu) {
                 return
             }
             for (var i = 0; i < buttons.length; i++) {
@@ -1783,6 +1806,9 @@ var game = (function () {
                         openedCredits = true;
                     } else if (button.text === "Tabla de puntuaciones") {
                         openedScores = true;
+                    } else if (button.text === "Como jugar") {
+                        openedHelp = true;
+                        console.log("Como jugar")
                     }
 
 
@@ -1817,6 +1843,49 @@ var game = (function () {
         bufferctx.fillText("2023 Ⓒ", canvas.width / 2 + 40, canvas.height / 2 + 250);
     }
 
+    function drawHelpPopup() {
+        let margensuperior = 75;
+        let posXCentrado = canvas.width / 2 - 200 + 100;
+
+        createModal(canvas, canvas.width / 2 - 200, canvas.height / 2 - 200, 600, 600, "Como jugar", 40);
+        bufferctx.fillStyle = "white";
+        bufferctx.font = "20px Arial";
+        bufferctx.textAlign = "center";
+        bufferctx.fillText("Objetivo:", posXCentrado, canvas.height / 2 - 200 + 50 + margensuperior);
+        bufferctx.textAlign = "left";
+        // imprimir texto mata a todos los enemigos sin recibir daño y obten la mayor puntuacion (en 2 lineas)
+        bufferctx.fillText("Mata a todos los enemigos sin recibir daño", posXCentrado, canvas.height / 2 - 200 + 50 + 50 + margensuperior);
+        bufferctx.fillText("y obtén la mayor puntuación, esquivando sus balas", posXCentrado, canvas.height / 2 - 200 + 50 + 50 + 50 + margensuperior);
+        //enemigos, imprimir enemigo y asteroide
+        bufferctx.textAlign = "center";
+        bufferctx.fillText("Enemigos:", posXCentrado, canvas.height / 2 - 200 + 50 + 50 + 50 + 50 + margensuperior);
+        bufferctx.textAlign = "left";
+        bufferctx.fillText("Enemigo: ", posXCentrado, canvas.height / 2 - 200 + 50 + 50 + 50 + 50 + 50 + margensuperior);
+        bufferctx.drawImage(evilImages.animation[1], posXCentrado + 100, canvas.height / 2 - 200 + 50 + 50 + 50 + 50 + 20 + margensuperior, 40, 40);
+        //asteroide
+        bufferctx.fillText("Asteroide: ", posXCentrado, canvas.height / 2 - 200 + 50 + 50 + 50 + 50 + 50 + 50 + margensuperior);
+        bufferctx.drawImage(asteroidImage, posXCentrado + 100, canvas.height / 2 - 200 + 50 + 50 + 50 + 50 + 50 + 20 + margensuperior, 40, 40);
+        //adelante del asteroide colocar "esquivalos o destruyelos para revelar powerups
+        bufferctx.fillText("Destruyelos para revelar powerups", posXCentrado + 100 + 40 + 20, canvas.height / 2 - 200 + 50 + 50 + 50 + 50 + 50 + 50 + margensuperior);
+        // powerups de vida y de disparo rapido
+        bufferctx.textAlign = "center";
+        bufferctx.fillText("Powerups:", posXCentrado, canvas.height / 2 - 200 + 50 + 50 + 50 + 50 + 50 + 50 + 50 + margensuperior);
+
+        bufferctx.textAlign = "left";
+        bufferctx.fillText("Vida: ", posXCentrado, canvas.height / 2 - 200 + 50 + 50 + 50 + 50 + 50 + 50 + 50 + 50 + margensuperior);
+        bufferctx.fillText("Disparo rápido: ", posXCentrado, canvas.height / 2 - 200 + 50 + 50 + 50 + 50 + 50 + 50 + 50 + 50 + 50 + margensuperior);
+        //imagen powerup vida
+        bufferctx.drawImage(lifeUp, posXCentrado + 55, canvas.height / 2 - 200 + 50 + 50 + 50 + 50 + 50 + 50 + 50 + 25 + margensuperior, 40, 40);
+        //despues de la vida poner "recupera una vida"
+        bufferctx.fillText("Recupera una vida", posXCentrado + 50 + 40 + 20, canvas.height / 2 - 200 + 50 + 50 + 50 + 50 + 50 + 50 + 50 + 50 + margensuperior);
+        //imagen powerup disparo rapido
+        bufferctx.drawImage(machineGun, posXCentrado + 150, canvas.height / 2 - 200 + 50 + 50 + 50 + 50 + 50 + 50 + 50 + 50 + 50 - 25 + margensuperior, 40, 40);
+        //despues de la vida poner "dispara mas rapido"
+        bufferctx.fillText("Dispara más rápido", posXCentrado + 150 + 40 + 20, canvas.height / 2 - 200 + 50 + 50 + 50 + 50 + 50 + 50 + 50 + 50 + 50 + margensuperior);
+
+
+    }
+
     function drawBestScores() {
         let margensuperior = 75;
         let posXCentrado = canvas.width / 2 - 200 + 100;
@@ -1846,6 +1915,8 @@ var game = (function () {
         bufferctx.drawImage(space, canvas.width / 2 - 200 + 50, canvas.height / 2 - 200 + 50 + margensuperior, 75, 40);
         bufferctx.drawImage(izq, canvas.width / 2 - 200 + 50, canvas.height / 2 - 200 + 50 + 70 + margensuperior, 50, 50);
         bufferctx.drawImage(der, canvas.width / 2 - 200 + 50, canvas.height / 2 - 200 + 50 + 150 + margensuperior, 50, 50);
+        //dibujar escape
+        bufferctx.drawImage(escapeKey, canvas.width / 2 - 200 + 50, canvas.height / 2 - 200 + 50 + 230 + margensuperior, 50, 50);
 
         bufferctx.fillStyle = "white";
         bufferctx.font = "20px Arial";
@@ -1854,6 +1925,7 @@ var game = (function () {
         bufferctx.fillText("Disparar", canvas.width / 2 - 200 + 50 + 75 + 20, canvas.height / 2 - 200 + 50 + 30 + margensuperior);
         bufferctx.fillText("Moverse a la izquierda", canvas.width / 2 - 200 + 50 + 75 + 20, canvas.height / 2 - 200 + 50 + 70 + 30 + margensuperior);
         bufferctx.fillText("Moverse a la derecha", canvas.width / 2 - 200 + 50 + 75 + 20, canvas.height / 2 - 200 + 50 + 150 + 30 + margensuperior);
+        bufferctx.fillText("Pausar", canvas.width / 2 - 200 + 50 + 75 + 20, canvas.height / 2 - 200 + 50 + 230 + 30 + margensuperior);
     }
 
     function createModal(canvas, x, y, width, height, titulo, textSize) {
@@ -1886,6 +1958,7 @@ var game = (function () {
                 openedControls = false;
                 openedCredits = false;
                 openedScores = false;
+                openedHelp = false;
             }
         });
     }
@@ -1940,9 +2013,18 @@ var game = (function () {
                 pressed: false
             },
             {
-                text: "Créditos",
+                text: "Como jugar",
                 x: canvas.width / 2 - 125,
                 y: canvas.height / 2 + 75 + 75 + 75 + 75,
+                width: 240,
+                height: 50,
+                color: "blue",
+                pressed: false
+            },
+            {
+                text: "Créditos",
+                x: canvas.width / 2 - 125,
+                y: canvas.height / 2 + 75 + 75 + 75 + 75 + 75,
                 width: 240,
                 height: 50,
                 color: "blue",
