@@ -250,19 +250,20 @@ var game = (function () {
         der.src = "images/derecha.png";
 
         //precarga del SFX
-        hit1 = new Audio("sfx/hit.mp3");
-        shoot1 = new Audio("sfx/shoot.mp3");
-        enemyDead = new Audio("sfx/enemy_dead.mp3");
-        gameOver1 = new Audio("sfx/game_over1.mp3");
-        gameOver2 = new Audio("sfx/game_over2.mp3");
-        asteroidExplosion1 = new Audio("sfx/asteroid_explosion1.mp3");
-        asteroidExplosion2 = new Audio("sfx/asteroid_explosion2.mp3")
-        explosion = new Audio("sfx/explosion2.mp3");
-        explosion2 = new Audio("sfx/explosion1.mp3")
-        liFeUpPowerUp = new Audio("sfx/coin_powerup.mp3");
-        machineGunPowerUp = new Audio("sfx/boing_powerup.mp3");
-        pause = new Audio("sfx/pause.wav");
-        unpause = new Audio("sfx/unpause.wav");
+        //precargar un archivo para luego reproducirlo como Audio
+        hit1 = "sfx/hit.mp3";
+        shoot1 = "sfx/shoot.mp3";
+        enemyDead = "sfx/enemy_dead.mp3";
+        gameOver1 = "sfx/game_over1.mp3";
+        gameOver2 = "sfx/game_over2.mp3";
+        asteroidExplosion1 = "sfx/asteroid_explosion1.mp3";
+        asteroidExplosion2 = "sfx/asteroid_explosion2.mp3"
+        explosion = "sfx/explosion2.mp3";
+        explosion2 = "sfx/explosion1.mp3"
+        liFeUpPowerUp = "sfx/coin_powerup.mp3";
+        machineGunPowerUp = "sfx/boing_powerup.mp3";
+        pause = "sfx/pause.wav";
+        unpause = "sfx/unpause.wav";
 
         //powerup imagen
         machineGun = new Image();
@@ -308,6 +309,7 @@ var game = (function () {
 
         anim();
     }
+
 
     function showLifeAndScore() {
         bufferctx.fillStyle = "rgb(255,255,255)";
@@ -383,6 +385,46 @@ var game = (function () {
         }
     }
 
+    var audioCache = {};
+
+    function playSound(sonido) {
+        var audio;
+
+        if (audioCache[sonido]) {
+            // Si el objeto Audio ya existe en la caché, lo reutilizamos
+            audio = audioCache[sonido];
+        } else {
+            // Si el objeto Audio no existe en la caché, lo creamos y lo almacenamos en la caché
+            audio = new Audio(sonido);
+            audioCache[sonido] = audio;
+        }
+
+        var loaded = false; // Variable para indicar si el archivo de sonido está cargado
+
+        // Función para reproducir el sonido cuando esté listo
+        function playWhenReady() {
+            if (loaded) {
+                audio.play();
+            }
+        }
+
+        audio.addEventListener('canplaythrough', function() {
+            loaded = true; // El archivo de sonido está cargado
+            playWhenReady();
+        });
+
+        audio.addEventListener('loadeddata', function() {
+            loaded = true; // El archivo de sonido está cargado
+            playWhenReady();
+        });
+
+        audio.addEventListener('error', function() {
+            console.log('Error al cargar el archivo de sonido');
+        });
+
+        audio.load(); // Cargar el archivo de sonido
+    }
+
     function getRandomNumber(range) {
         return Math.floor(Math.random() * range);
     }
@@ -408,8 +450,11 @@ var game = (function () {
                 playerShot.add();
                 now += playerShotDelay;
                 nextPlayerShot = now + playerShotDelay;
+
+
                 if (playerShotDelay > 150) {
-                    shoot1.play();
+                    playSound("SFX/shoot.mp3");
+
                 }
             } else {
                 now = new Date().getTime();
@@ -457,10 +502,10 @@ var game = (function () {
             pausarJuego = !pausarJuego;
             if (pausarJuego) {
                 musicplaying.pause();
-                pause.play();
+                playSound(pause)
             } else {
                 musicplaying.play();
-                unpause.play();
+                playSound(unpause)
             }
 
             // Establecer una espera de 500 ms antes de permitir que se use Escape para pausar nuevamente
@@ -479,7 +524,8 @@ var game = (function () {
                 playerShotsBuffer.splice(0, playerShotsBuffer.length);
                 this.src = playerKilledImage.src;
                 createNewEvil();
-                explosion.play();
+                playSound(explosion)
+
 
                 setTimeout(function () {
                     player = new Player(player.life - 1, player.score);
@@ -602,9 +648,10 @@ var game = (function () {
         this.kill = function () {
 
             if (this.finalBoss) {
-                explosion2.play();
+                playSound(explosion2)
+
             } else if(!primerEnemigo){
-                enemyDead.play();
+                playSound(enemyDead)
             }
 
 
@@ -831,7 +878,7 @@ var game = (function () {
                 if (isPowerUpCollidingPlayer(this)) {
                     powerUpShowing = false;
                     this.destroyed = true;
-                    this.sfx.play()
+                    playSound(this.sfx);
 
 
                     // Realizar acción correspondiente según el tipo de power-up recolectado
@@ -993,13 +1040,14 @@ var game = (function () {
         if (youLoose) {
             if (onlyonce > 0) {
                 musicplaying.pause();
-                gameOver1.play();
+                playSound(gameOver1)
+
                 onlyonce--;
             }
         } else {
             if (onlyonce > 0) {
                 musicplaying.pause();
-                gameOver2.play();
+                playSound(gameOver2);
                 onlyonce--;
             }
         }
@@ -1033,7 +1081,7 @@ var game = (function () {
                 evil.life--;
                 //moverlo hacia arriba
                 evil.posY -= callback;
-                hit1.play();
+                playSound(hit1);
             } else {
                 evil.kill();
                 //cuando se muere se disminuye el contador de enemigos
@@ -1062,9 +1110,9 @@ var game = (function () {
                 generatePowerUp(asteroids[i].posX, asteroids[i].posY);
                 shot.deleteShot(parseInt(shot.identifier));
                 if (ciclos % 2 === 0) {
-                    asteroidExplosion1.play();
+                    playSound(asteroidExplosion1)
                 } else {
-                    asteroidExplosion2.play();
+                    playSound(asteroidExplosion2)
                 }
                 return false;
             }
